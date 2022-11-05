@@ -11,7 +11,7 @@ from PyQt6 import QtCore
 from PyQt6.QtCore import (QStringListModel, QDir)
 from PyQt6 import QtWidgets
 from PyQt6 import sip
-from PyQt6.QtCore import QThread, QObject
+from PyQt6.QtCore import QThread, QObject, pyqtSignal
 
 from PyQt6.QtWidgets import (
     QVBoxLayout,
@@ -34,61 +34,98 @@ import os
 import time
 import socket
 
-from netmiko import Netmiko
+from netmiko import BaseConnection, Netmiko
 import paramiko
 from paramiko import ssh_exception
 from paramiko.ssh_exception import AuthenticationException
 
-class SSHWorker(QThread):
-    def __init__(self, ip, username, passwd, port=22) :
-        super(SSHWorker, self).__init__()
-        self.run = True
+# 全局ssh句柄
+conn = None
+
+class SSHExecCmdWoker(QThread):
+    signal_ssh_cmd_exec_over = pyqtSignal()
+    
+    def __init__(self, mainwindow):
+        super(SSHExecCmdWoker, self).__init__()
+        self.mainwindow = mainwindow
         
-        self.ip = ip
-        self.port = port
-        self.username = username
-        self.password = passwd
+        # 获取全局ssh句柄
+        self.conn = conn
+        
+        self.run = True
+        self.cmd = mainwindow.cmd
+        self.cmd_array = mainwindow.cmd_array
+        
+        self.signal_ssh_cmd_exec_over.connect(self.update_ui)
+        
+    def update_ui(self):
+        self.mainwindow.te_cmd_output.setText("链接测试通过✅")
+        # ssh连通，打开巡检按钮
+        self.mainwindow.btn_inspection.setEnabled(True)
+        # self.mainwindow.te_cmd_output.setText(connect_msg)
     
     def run(self):
-        time.sleep(3)
-        self.try_connect()
-        
-    # 返回连接状态(bool)，连接信息(str)
-    def try_connect(self) -> (bool, str):
-        conn = paramiko.SSHClient()
-        conn.set_missing_host_key_policy(paramiko.AutoAddPolicy())
-        try:
-            conn.connect(self.ip, port=self.port, username=self.username, password=self.password, timeout=15)
-            connect_result = "Connect Server {0} {1} {2} {3} 主机连接成功!\n".format(
-                self.ip, self.port, self.username, self.password)
-            data = '{"code": "1000", "msg": "主机连接成功","result": true}'
-            return (True, data)
-        except AuthenticationException:
-            connect_result = "Connect Server {0} {1} {2} {3} 用户名或密码错误!\n".format(
-                self.ip, self.port, self.username, self.password)
-            data = '{"code": "5000", "msg": "用户名或密码错误","result": false}'
-            return (False, data)
-        except socket.timeout:
-            connect_result = "Connect Server {0} {1} {2} {3} 主机连接异常!\n".format(
-                self.ip, self.port, self.username, self.password)
-            data = '{"code": "6000", "msg": "主机连接异常","result": false}'
-            return (False, data)
-        except ssh_exception.SSHException:
-            connect_result = "Connect Server {0} {1} {2} {3} 端口错误!\n".format(
-                self.ip, self.port, self.username, self.password)
-            data = '{"code": "7000", "msg": "端口错误","result": false}'
-            return (False, connect_result)
+        cmd_exec_result = self.exec_cmd_array()
+        self.signal_ssh_cmd_exec_over.emit(cmd_exec_result)
     
-    def exec_cmd_array(self):
+    def exec_cmd_array(self) -> str:
         self.cmd_array = self.te_cmd_input.toPlainText().split('\n')
-        tmp_buf = ""
+        cmd_exec_result = ""
         for self.cmd in self.cmd_array:
-            tmp_buf += self.exec_cmd(self.cmd)
-            self.te_cmd_output.setText(tmp_buf)
+            cmd_exec_result += self.exec_cmd(self.cmd)
+        
+        return cmd_exec_result
         
     def exec_cmd(self, cmd) -> str:
-        # need to do filter
-        result_str = ""
+        # print_template = ("===================================================================\n时间: %s\n命令执行状态: %s\n命令执行结果: \n%s\n===================================================================\n")
+        print_template = ("==============================================================\n时间: %s\n命令执行状态: %s\n当前执行命令： %s\n命令执行结果: \n%s\n")
+        
+        try:
+            cur_time = time.asctime()
+            # TOTO, set text color to red
+            real_info = self.ssh.send_command(cmd)
+            result_str = print_template % (cur_time, '执行成功', cmd, real_info)
+
+        except Exception as e:
+            cur_time = time.asctime()
+            result_str = print_template % (cur_time, '执行失败', cmd, '')
+            
+        return result_str
+
+class SSHConnTestWorker(QThread):
+    signal_ssh_connected = pyqtSignal()
+    signal_ssh_not_connected = pyqtSignal()
+    
+    def __init__(self, mainwindow):
+        super(SSHConnTestWorker, self).__init__()
+        self.mainwindow = mainwindow
+        self.run = True
+        self.ip = mainwindow.ip
+        self.port = 22
+        self.username = mainwindow.username
+        self.passwd = mainwindow.passwd
+        
+        self.signal_ssh_connected.connect(self.update_ui_connected)
+        self.signal_ssh_not_connected.connect(self.update_ui_not_connected)
+        
+    def update_ui_connected(self):
+        self.mainwindow.te_cmd_output.setText("链接测试通过✅")
+        # ssh连通，打开巡检按钮
+        self.mainwindow.btn_inspection.setEnabled(True)
+        # self.mainwindow.te_cmd_output.setText(connect_msg)
+        
+    def update_ui_not_connected(self):
+        self.mainwindow.te_cmd_output.setText("链接测试失败❎")
+    
+    def run(self):
+        is_connected, conn = self.try_connect()
+        if is_connected:
+            self.signal_ssh_connected.emit()
+        else:
+            self.signal_ssh_not_connected.emit()
+        
+    # 返回连接状态(bool)，连接句柄(conn)
+    def try_connect(self):
         dev = {
             'device_type': 'linux',
             'username': self.username,
@@ -96,23 +133,20 @@ class SSHWorker(QThread):
             'port': 22,
             'host': self.ip,
         }
-        
-        # print_template = ("===================================================================\n时间: %s\n命令执行状态: %s\n命令执行结果: \n%s\n===================================================================\n")
         print_template = ("==============================================================\n时间: %s\n命令执行状态: %s\n当前执行命令： %s\n命令执行结果: \n%s\n")
+            
+        try:
+            with Netmiko(**dev) as ssh:
+                # 保存ssh连接
+                self.conn = ssh
+                self.status = True
+            
+        except Exception as e:
+            self.conn = None
+            self.status = False
         
-        with Netmiko(**dev) as ssh:
-            # 通过ssh命令，结果返回
-            try:
-                cur_time = time.asctime()
-                # TOTO, set text color to red
-                real_info = ssh.send_command(cmd)
-                result_str = print_template % (cur_time, '执行成功', cmd, real_info)
-
-            except Exception as e:
-                cur_time = time.asctime()
-                result_str = print_template % (cur_time, '执行失败', cmd, '')
-        return result_str
-
+        return (self.status, self.conn)
+        
 class AboutWidget(Ui_about.Ui_Form, QWidget):
     def __init__(self):
         super(AboutWidget, self).__init__()
@@ -145,9 +179,10 @@ class MainWindow(UI_mainwidget.Ui_Form, QWidget):
         self.init_ui()
         self.init_slot()
         self.show()
-    
+        
     def showProgregssDialog(self):
-       num = 10000
+       # num = 10000
+       num = 5000
        progress = QProgressDialog(self)
        progress.setWindowTitle("请稍等")  
        progress.setLabelText("正在测试连接...")
@@ -160,12 +195,14 @@ class MainWindow(UI_mainwidget.Ui_Form, QWidget):
            if progress.wasCanceled():
                QMessageBox.warning(self,"提示","操作失败") 
                break
+        # 这个else怎么没对齐？
        else:
            progress.setValue(num)
            QMessageBox.information(self,"提示","操作成功")
     
     def btn_inspection_clicked(self):
-        self.run()
+        self.ssh_exec_cmd_worker = SSHExecCmdWoker()
+        self.ssh_exec_cmd_worker.start()
         self.showProgregssDialog()
         
     def btn_import_clicked(self):
@@ -192,18 +229,10 @@ class MainWindow(UI_mainwidget.Ui_Form, QWidget):
         self.passwd = self.le_passwd.text()
         
         # init ssh woker
-        self.ssh_worker = SSHWorker(ip=self.ip, username=self.username, passwd=self.passwd)
-        self.ssh_worker.start()
+        self.ssh_conn_test_worker = SSHConnTestWorker(self)
+        self.ssh_conn_test_worker.start()
         self.showProgregssDialog()
         
-        is_connected, msg = self.ssh_worker.try_connect()
-        
-        # ssh连通，打开巡检按钮
-        if is_connected:
-            self.btn_inspection.setEnabled(True)
-            
-        self.te_cmd_output.setText(msg)
-            
     def init_ui(self):
         self.resize(1000, 700)
         
