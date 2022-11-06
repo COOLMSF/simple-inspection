@@ -27,7 +27,7 @@ from PyQt6.QtWidgets import (
     QLineEdit,
     QListView,
     QFileDialog,
-        QProgressDialog,
+    QProgressDialog,
 )
 
 import re
@@ -45,8 +45,9 @@ conn = None
 
 class Host():
     ip = None
-    username = None
     passwd = None
+    username = None
+    conn = None
     host_type = None
     
     def __init__(self, ip, username, passwd):
@@ -186,19 +187,24 @@ class HostInfoInput(Ui_host_info_input.Ui_Form, QWidget):
     def init_slot(self):
         self.btn_ok.clicked.connect(lambda x: self.btn_ok_clicked())
         self.btn_cancel.clicked.connect(lambda x: self.btn_calcel_clicked())
-        self.btn_ok.clicked.connect(lambda x: self.btn_ok_clicked())
         
     def btn_ok_clicked(self):
-        self.le_host_ip = self.le_host_ip
-        self.host_passwd = self.le_host_passwd
-        self.host_username = self.le_host_username
+        self.host_ip = self.le_host_ip.text()
+        self.host_username = self.le_host_username.text()
+        self.host_passwd = self.le_host_passwd.text()
+        
+        host_info = dict()
+        host_info['ip'] = self.host_ip
+        host_info['passwd'] = self.host_passwd
+        host_info['username'] = self.host_username
         
         self.mainwindow = MainWindow()
-        self.mainwindow.signal_host_info_input_widget.emit("Hello?")
+        # 发送host_info
+        self.mainwindow.signal_host_info_input_widget.emit(host_info)
         self.close()
     
     def btn_calcel_clicked(self):
-        pass
+        self.close()
         
 class AboutWidget(Ui_about.Ui_Form, QWidget):
     def __init__(self):
@@ -209,7 +215,6 @@ class AboutWidget(Ui_about.Ui_Form, QWidget):
         
     def btn_ok_clicked(self):
         dlg = QDialog(self)
-        dlg.setWindowTitle("Ok btn")
         dlg.exec()
     
     def btn_quit_clicked(self):
@@ -228,15 +233,14 @@ class MainWindow(UI_mainwidget.Ui_Form, QWidget):
     # 主机列表
     hosts = []
     
-    # host_info_input widget的信号
-    signal_host_info_input_widget = pyqtSignal(str)
+    # host_info_input widget的信号，接收子窗口传过来的IP，账号，密码
+    signal_host_info_input_widget = pyqtSignal(dict)
     
     def __init__(self):
         super(MainWindow, self).__init__()
         self.setupUi(self)
         self.init_ui()
         self.init_slot()
-        self.show()
         
     def showProgregssDialog(self):
        # num = 10000
@@ -248,6 +252,7 @@ class MainWindow(UI_mainwidget.Ui_Form, QWidget):
        progress.setMinimumDuration(1)
        progress.setWindowModality(QtCore.Qt.WindowModality.WindowModal)
        progress.setRange(0,num) 
+       
        for i in range(num):
            progress.setValue(i) 
            if progress.wasCanceled():
@@ -276,13 +281,12 @@ class MainWindow(UI_mainwidget.Ui_Form, QWidget):
         
     # buttom side UI logic
     def btn_conn_test_clicked(self):
-        self.ip = self.le_ipaddr.displayText()
-        self.username = self.le_username.displayText()
-        self.passwd = self.le_passwd.text()
+        for host in self.hosts:
+            # init ssh woker
+            self.ssh_conn_test_worker = SSHConnTestWorker(self)
+            self.ssh_conn_test_worker.start()
+            pass
         
-        # init ssh woker
-        self.ssh_conn_test_worker = SSHConnTestWorker(self)
-        self.ssh_conn_test_worker.start()
         self.showProgregssDialog()
         
     def btn_inspection_clicked(self):
@@ -298,29 +302,61 @@ class MainWindow(UI_mainwidget.Ui_Form, QWidget):
         HostInfoInput().show()
     
     def btn_del_host_clicked(self):
-        pass
+        selected_items = self.tw_host_info.selectedItems()
+        if not selected_items:
+            return
+        else:
+            for i, host in enumerate(selected_items):
+                selected_items = self.tw_host_info.selectedItems()[i].text()
+                self.del_host(selected_items)
     
     def btn_undo_host_clicked(self):
         pass
     
     def btn_batch_host_import_clicked(self):
         pass
+    
+    def add_host(self, host_info):
+        self.hosts.append(Host(ip=host_info['ip'], username=host_info['username'], passwd=host_info['passwd']))
+        # 更新UI
+        self.update_ui_host()
         
+    def del_host(self, ip):
+        for host in self.hosts:
+            # 按照ip删除主机
+            if host.ip == ip:
+                self.hosts.remove(host)
+        self.update_ui_host()
+        
+    def get_all_hosts(self):
+        for host in self.hosts:
+            print("Host:%s\nUsername:%s\nPasswd:%s" % host.ip, host.username, host.passwd)
+        
+    # UI更新部分
+    def update_ui_host(self):
+        # 设置行数
+        self.tw_host_info.setRowCount(len(self.hosts))
+        self.tw_host_info.setColumnCount(4)
+        
+        for i, host in enumerate(self.hosts):
+            print(i, str(host.ip), host.username, host.passwd)
+            self.tw_host_info.setItem(i, 0, self.tw_host_info.a)
+            self.tw_host_info.setItem(i, 0, QTableWidgetItem(str(host.ip)))
+            self.tw_host_info.setItem(i, 1, QTableWidgetItem(str(host.username)))
+            self.tw_host_info.setItem(i, 2, QTableWidgetItem(str(host.passwd)))
+        
+    
     def init_ui(self):
         self.resize(1000, 700)
         
         # 巡检按钮需要先通过连接性测试才能激活
         self.btn_inspection.setEnabled(False)
         
-        
-        # 设置固定大小
+        # 设置固定窗口大小
         self.setFixedSize(self.width(), self.height())
-        
-    def test(self, c):
-        print(c)
-        
+    
+    # 槽部分
     def init_slot(self):
-        
         # top left side
         self.btn_add_host.clicked.connect(lambda x: self.btn_add_host_clicked())
         self.btn_del_host.clicked.connect(lambda x: self.btn_del_host_clicked())
@@ -336,10 +372,11 @@ class MainWindow(UI_mainwidget.Ui_Form, QWidget):
         self.btn_conn_test.clicked.connect(lambda x: self.btn_conn_test_clicked())
         
         # signal
-        self.signal_host_info_input_widget.connect(lambda x:self.test(x))
+        self.signal_host_info_input_widget.connect(lambda x:self.add_host(x))
         
 if __name__ == "__main__":
     app = QApplication(sys.argv)
     w = MainWindow()
+    w.show()
     sys.exit(app.exec())
     
