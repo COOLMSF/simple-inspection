@@ -6,8 +6,8 @@
    <rect>
     <x>0</x>
     <y>0</y>
-    <width>1074</width>
-    <height>605</height>
+    <width>1440</width>
+    <height>872</height>
    </rect>
   </property>
   <property name="windowTitle">
@@ -16,216 +16,138 @@
   <widget class="QWidget" name="">
    <property name="geometry">
     <rect>
-     <x>250</x>
-     <y>70</y>
-     <width>595</width>
-     <height>481</height>
+     <x>300</x>
+     <y>140</y>
+     <width>791</width>
+     <height>511</height>
     </rect>
    </property>
-   <layout class="QVBoxLayout" name="verticalLayout_3">
+   <layout class="QVBoxLayout" name="verticalLayout_4">
     <item>
-     <layout class="QHBoxLayout" name="horizontalLayout_8">
+     <layout class="QHBoxLayout" name="horizontalLayout_3">
       <item>
-       <layout class="QVBoxLayout" name="verticalLayout_5">
+       <layout class="QHBoxLayout" name="horizontalLayout">
         <item>
-         <layout class="QHBoxLayout" name="horizontalLayout_4">
+         <layout class="QVBoxLayout" name="verticalLayout_3">
           <item>
-           <widget class="QLabel" name="label_5">
-            <property name="minimumSize">
-             <size>
-              <width>87</width>
-              <height>26</height>
-             </size>
-            </property>
-            <property name="maximumSize">
-             <size>
-              <width>87</width>
-              <height>26</height>
-             </size>
-            </property>
-            <property name="styleSheet">
-             <string notr="true">border:2px groove gray;border-radius:10px;padding:2px 4px</string>
-            </property>
+           <widget class="QPushButton" name="btn_batch_host_import">
             <property name="text">
-             <string>&lt;html&gt;&lt;head/&gt;&lt;body&gt;&lt;p align=&quot;center&quot;&gt;&lt;span style=&quot; font-size:14pt;&quot;&gt;设备IP&lt;/span&gt;&lt;/p&gt;&lt;/body&gt;&lt;/html&gt;</string>
+             <string>批量导入主机</string>
             </property>
            </widget>
           </item>
           <item>
-           <widget class="QLineEdit" name="le_ipaddr">
-            <property name="minimumSize">
-             <size>
-              <width>127</width>
-              <height>22</height>
-             </size>
+           <widget class="QPushButton" name="btn_add_host">
+            <property name="text">
+             <string>添加主机</string>
             </property>
-            <property name="maximumSize">
-             <size>
-              <width>127</width>
-              <height>22</height>
-             </size>
+           </widget>
+          </item>
+          <item>
+           <widget class="QPushButton" name="btn_del_host">
+            <property name="text">
+             <string>删除主机</string>
             </property>
-            <property name="styleSheet">
-             <string notr="true">border:2px groove gray;border-radius:10px;padding:2px 4px</string>
+           </widget>
+          </item>
+          <item>
+           <widget class="QPushButton" name="btn_undo_host">
+            <property name="text">
+             <string>撤销</string>
             </property>
            </widget>
           </item>
          </layout>
         </item>
         <item>
-         <layout class="QHBoxLayout" name="horizontalLayout_5">
-          <item>
-           <widget class="QLabel" name="label_6">
-            <property name="minimumSize">
-             <size>
-              <width>87</width>
-              <height>26</height>
-             </size>
-            </property>
-            <property name="maximumSize">
-             <size>
-              <width>87</width>
-              <height>26</height>
-             </size>
-            </property>
-            <property name="styleSheet">
-             <string notr="true">border:2px groove gray;border-radius:10px;padding:2px 4px</string>
-            </property>
-            <property name="text">
-             <string>&lt;html&gt;&lt;head/&gt;&lt;body&gt;&lt;p align=&quot;center&quot;&gt;&lt;span style=&quot; font-size:14pt;&quot;&gt;用户名&lt;/span&gt;&lt;/p&gt;&lt;/body&gt;&lt;/html&gt;</string>
-            </property>
-           </widget>
-          </item>
-          <item>
-           <widget class="QLineEdit" name="le_username">
-            <property name="minimumSize">
-             <size>
-              <width>127</width>
-              <height>22</height>
-             </size>
-            </property>
-            <property name="maximumSize">
-             <size>
-              <width>127</width>
-              <height>22</height>
-             </size>
-            </property>
-            <property name="styleSheet">
-             <string notr="true">border:2px groove gray;border-radius:10px;padding:2px 4px</string>
-            </property>
-           </widget>
-          </item>
-         </layout>
-        </item>
-        <item>
-         <layout class="QHBoxLayout" name="horizontalLayout_6">
-          <item>
-           <widget class="QLabel" name="label_8">
-            <property name="minimumSize">
-             <size>
-              <width>87</width>
-              <height>26</height>
-             </size>
-            </property>
-            <property name="maximumSize">
-             <size>
-              <width>87</width>
-              <height>26</height>
-             </size>
-            </property>
-            <property name="styleSheet">
-             <string notr="true">border:2px groove gray;border-radius:10px;padding:2px 4px</string>
-            </property>
-            <property name="text">
-             <string>&lt;html&gt;&lt;head/&gt;&lt;body&gt;&lt;p align=&quot;center&quot;&gt;&lt;span style=&quot; font-size:14pt;&quot;&gt;密码&lt;/span&gt;&lt;/p&gt;&lt;/body&gt;&lt;/html&gt;</string>
-            </property>
-           </widget>
-          </item>
-          <item>
-           <widget class="QLineEdit" name="le_passwd">
-            <property name="minimumSize">
-             <size>
-              <width>127</width>
-              <height>22</height>
-             </size>
-            </property>
-            <property name="maximumSize">
-             <size>
-              <width>127</width>
-              <height>22</height>
-             </size>
-            </property>
-            <property name="styleSheet">
-             <string notr="true">border:2px groove gray;border-radius:10px;padding:2px 4px</string>
-            </property>
-           </widget>
-          </item>
-         </layout>
-        </item>
-       </layout>
-      </item>
-      <item>
-       <layout class="QHBoxLayout" name="horizontalLayout_7">
-        <item>
-         <layout class="QVBoxLayout" name="verticalLayout">
-          <item>
-           <widget class="QLabel" name="label_7">
-            <property name="minimumSize">
-             <size>
-              <width>83</width>
-              <height>149</height>
-             </size>
-            </property>
-            <property name="maximumSize">
-             <size>
-              <width>83</width>
-              <height>149</height>
-             </size>
-            </property>
-            <property name="text">
-             <string>&lt;html&gt;&lt;head/&gt;&lt;body&gt;&lt;p align=&quot;center&quot;&gt;&lt;span style=&quot; font-size:14pt;&quot;&gt;命令&lt;/span&gt;&lt;/p&gt;&lt;/body&gt;&lt;/html&gt;</string>
-            </property>
-           </widget>
-          </item>
-          <item>
-           <widget class="QPushButton" name="btn_import">
-            <property name="minimumSize">
-             <size>
-              <width>83</width>
-              <height>32</height>
-             </size>
-            </property>
-            <property name="maximumSize">
-             <size>
-              <width>83</width>
-              <height>32</height>
-             </size>
-            </property>
-            <property name="text">
-             <string>批量导入</string>
-            </property>
-           </widget>
-          </item>
-         </layout>
-        </item>
-        <item>
-         <widget class="QTextEdit" name="te_cmd_input">
+         <widget class="QTableWidget" name="tw_host_info">
           <property name="minimumSize">
            <size>
             <width>256</width>
             <height>192</height>
            </size>
           </property>
-          <property name="maximumSize">
-           <size>
-            <width>256</width>
-            <height>192</height>
-           </size>
-          </property>
-          <property name="styleSheet">
-           <string notr="true">border:2px groove gray;border-radius:10px;padding:2px 4px</string>
-          </property>
+          <column>
+           <property name="text">
+            <string>主机ip</string>
+           </property>
+          </column>
+          <column>
+           <property name="text">
+            <string>用户名</string>
+           </property>
+          </column>
+          <column>
+           <property name="text">
+            <string>密码</string>
+           </property>
+          </column>
          </widget>
+        </item>
+        <item>
+         <layout class="QHBoxLayout" name="horizontalLayout_7">
+          <item>
+           <layout class="QVBoxLayout" name="verticalLayout">
+            <item alignment="Qt::AlignHCenter">
+             <widget class="QLabel" name="label_7">
+              <property name="minimumSize">
+               <size>
+                <width>83</width>
+                <height>149</height>
+               </size>
+              </property>
+              <property name="maximumSize">
+               <size>
+                <width>83</width>
+                <height>149</height>
+               </size>
+              </property>
+              <property name="text">
+               <string>&lt;html&gt;&lt;head/&gt;&lt;body&gt;&lt;p align=&quot;center&quot;&gt;&lt;span style=&quot; font-size:14pt;&quot;&gt;命令&lt;/span&gt;&lt;/p&gt;&lt;/body&gt;&lt;/html&gt;</string>
+              </property>
+             </widget>
+            </item>
+            <item alignment="Qt::AlignHCenter|Qt::AlignVCenter">
+             <widget class="QPushButton" name="btn_batch_cmd_import">
+              <property name="minimumSize">
+               <size>
+                <width>83</width>
+                <height>32</height>
+               </size>
+              </property>
+              <property name="maximumSize">
+               <size>
+                <width>83</width>
+                <height>32</height>
+               </size>
+              </property>
+              <property name="text">
+               <string>批量导入命令</string>
+              </property>
+             </widget>
+            </item>
+           </layout>
+          </item>
+          <item alignment="Qt::AlignHCenter|Qt::AlignVCenter">
+           <widget class="QTextEdit" name="te_cmd_input">
+            <property name="minimumSize">
+             <size>
+              <width>256</width>
+              <height>192</height>
+             </size>
+            </property>
+            <property name="maximumSize">
+             <size>
+              <width>256</width>
+              <height>192</height>
+             </size>
+            </property>
+            <property name="styleSheet">
+             <string notr="true">border:2px groove gray;border-radius:10px;padding:2px 4px</string>
+            </property>
+           </widget>
+          </item>
+         </layout>
         </item>
        </layout>
       </item>

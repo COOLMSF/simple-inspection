@@ -4,6 +4,7 @@ import ipaddress
 
 from view import UI_mainwidget
 from view import Ui_about
+from view import Ui_host_info_input
 
 # validate ip
 from PyQt6.QtGui import QRegularExpressionValidator
@@ -26,7 +27,7 @@ from PyQt6.QtWidgets import (
     QLineEdit,
     QListView,
     QFileDialog,
-    QProgressDialog,
+        QProgressDialog,
 )
 
 import re
@@ -41,6 +42,26 @@ from paramiko.ssh_exception import AuthenticationException
 
 # 全局ssh句柄
 conn = None
+
+class Host():
+    ip = None
+    username = None
+    passwd = None
+    host_type = None
+    
+    def __init__(self, ip, username, passwd):
+        self.ip = ip
+        self.username = username
+        self.passwd = passwd
+        
+    def get_ip(self):
+        return self.ip
+    
+    def get_username(self):
+        return self.username
+    
+    def get_passwd(self):
+        return self.passwd
 
 class SSHExecCmdWoker(QThread):
     signal_ssh_cmd_exec_over = pyqtSignal()
@@ -146,6 +167,38 @@ class SSHConnTestWorker(QThread):
             self.status = False
         
         return (self.status, self.conn)
+    
+class HostInfoInput(Ui_host_info_input.Ui_Form, QWidget):
+    host_ip = None
+    host_passwd = None
+    host_username = None
+    
+    def __init__(self):
+        super(HostInfoInput, self).__init__()
+        self.setupUi(self)
+        self.init_ui()
+        self.init_slot()
+        
+    def init_ui(self):
+        # 隐藏密码
+        self.le_host_passwd.setEchoMode(QLineEdit.EchoMode.Password)
+        
+    def init_slot(self):
+        self.btn_ok.clicked.connect(lambda x: self.btn_ok_clicked())
+        self.btn_cancel.clicked.connect(lambda x: self.btn_calcel_clicked())
+        self.btn_ok.clicked.connect(lambda x: self.btn_ok_clicked())
+        
+    def btn_ok_clicked(self):
+        self.le_host_ip = self.le_host_ip
+        self.host_passwd = self.le_host_passwd
+        self.host_username = self.le_host_username
+        
+        self.mainwindow = MainWindow()
+        self.mainwindow.signal_host_info_input_widget.emit("Hello?")
+        self.close()
+    
+    def btn_calcel_clicked(self):
+        pass
         
 class AboutWidget(Ui_about.Ui_Form, QWidget):
     def __init__(self):
@@ -153,7 +206,6 @@ class AboutWidget(Ui_about.Ui_Form, QWidget):
         self.setupUi(self)
         self.init_ui()
         self.init_slot()
-        self.show()
         
     def btn_ok_clicked(self):
         dlg = QDialog(self)
@@ -173,6 +225,12 @@ class AboutWidget(Ui_about.Ui_Form, QWidget):
         self.btn_quit.clicked.connect(lambda x: self.btn_quit_clicked())
         
 class MainWindow(UI_mainwidget.Ui_Form, QWidget):
+    # 主机列表
+    hosts = []
+    
+    # host_info_input widget的信号
+    signal_host_info_input_widget = pyqtSignal(str)
+    
     def __init__(self):
         super(MainWindow, self).__init__()
         self.setupUi(self)
@@ -200,12 +258,8 @@ class MainWindow(UI_mainwidget.Ui_Form, QWidget):
            progress.setValue(num)
            QMessageBox.information(self,"提示","操作成功")
     
-    def btn_inspection_clicked(self):
-        self.ssh_exec_cmd_worker = SSHExecCmdWoker()
-        self.ssh_exec_cmd_worker.start()
-        self.showProgregssDialog()
-        
-    def btn_import_clicked(self):
+    # top right side UI logic
+    def btn_batch_cmd_import_clicked(self):
         fdlg = QFileDialog()
         fdlg.setFileMode(QFileDialog.FileMode.AnyFile)
         
@@ -220,9 +274,7 @@ class MainWindow(UI_mainwidget.Ui_Form, QWidget):
                 data=f.read()
                 self.te_cmd_input.setText(data)
         
-    def btn_about_clicked(self):
-        AboutWidget()
-        
+    # buttom side UI logic
     def btn_conn_test_clicked(self):
         self.ip = self.le_ipaddr.displayText()
         self.username = self.le_username.displayText()
@@ -233,23 +285,58 @@ class MainWindow(UI_mainwidget.Ui_Form, QWidget):
         self.ssh_conn_test_worker.start()
         self.showProgregssDialog()
         
+    def btn_inspection_clicked(self):
+        self.ssh_exec_cmd_worker = SSHExecCmdWoker()
+        self.ssh_exec_cmd_worker.start()
+        self.showProgregssDialog()
+        
+    def btn_about_clicked(self):
+        AboutWidget()
+        
+    # top left side UI logic
+    def btn_add_host_clicked(self):
+        HostInfoInput().show()
+    
+    def btn_del_host_clicked(self):
+        pass
+    
+    def btn_undo_host_clicked(self):
+        pass
+    
+    def btn_batch_host_import_clicked(self):
+        pass
+        
     def init_ui(self):
         self.resize(1000, 700)
         
         # 巡检按钮需要先通过连接性测试才能激活
         self.btn_inspection.setEnabled(False)
         
-        # 密码输入
-        self.le_passwd.setEchoMode(QLineEdit.EchoMode.Password)
         
         # 设置固定大小
-        self.setFixedSize(self.width(), self.height()); 
+        self.setFixedSize(self.width(), self.height())
+        
+    def test(self, c):
+        print(c)
         
     def init_slot(self):
+        
+        # top left side
+        self.btn_add_host.clicked.connect(lambda x: self.btn_add_host_clicked())
+        self.btn_del_host.clicked.connect(lambda x: self.btn_del_host_clicked())
+        self.btn_undo_host.clicked.connect(lambda x: self.btn_undo_host_clicked())
+        self.btn_batch_host_import.clicked.connect(lambda x: self.btn_batch_host_import_clicked())
+        
+        # top right side
+        self.btn_batch_cmd_import.clicked.connect(lambda x: self.btn_batch_cmd_import_clicked())
+        
+        # buttom side
         self.btn_about.clicked.connect(lambda x: self.btn_about_clicked())
         self.btn_inspection.clicked.connect(lambda x: self.btn_inspection_clicked())
         self.btn_conn_test.clicked.connect(lambda x: self.btn_conn_test_clicked())
-        self.btn_import.clicked.connect(lambda x: self.btn_import_clicked())
+        
+        # signal
+        self.signal_host_info_input_widget.connect(lambda x:self.test(x))
         
 if __name__ == "__main__":
     app = QApplication(sys.argv)
