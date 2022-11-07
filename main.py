@@ -285,7 +285,6 @@ class MainWindow(UI_mainwidget.Ui_Form, QWidget):
             # init ssh woker
             self.ssh_conn_test_worker = SSHConnTestWorker(self)
             self.ssh_conn_test_worker.start()
-            pass
         
         self.showProgregssDialog()
         
@@ -295,7 +294,7 @@ class MainWindow(UI_mainwidget.Ui_Form, QWidget):
         self.showProgregssDialog()
         
     def btn_about_clicked(self):
-        AboutWidget()
+        AboutWidget().show()
         
     # top left side UI logic
     def btn_add_host_clicked(self):
@@ -320,6 +319,7 @@ class MainWindow(UI_mainwidget.Ui_Form, QWidget):
         self.hosts.append(Host(ip=host_info['ip'], username=host_info['username'], passwd=host_info['passwd']))
         # 更新UI
         self.update_ui_host()
+
         
     def del_host(self, ip):
         for host in self.hosts:
@@ -334,26 +334,24 @@ class MainWindow(UI_mainwidget.Ui_Form, QWidget):
         
     # UI更新部分
     def update_ui_host(self):
-        # 设置行数
-        self.tw_host_info.setRowCount(len(self.hosts))
-        self.tw_host_info.setColumnCount(4)
-        
         for i, host in enumerate(self.hosts):
             print(i, str(host.ip), host.username, host.passwd)
-            self.tw_host_info.setItem(i, 0, self.tw_host_info.a)
-            self.tw_host_info.setItem(i, 0, QTableWidgetItem(str(host.ip)))
+            print(self.tw_host_info)
+            self.tw_host_info.setItem(i, 0, QTableWidgetItem(host.ip))
             self.tw_host_info.setItem(i, 1, QTableWidgetItem(str(host.username)))
             self.tw_host_info.setItem(i, 2, QTableWidgetItem(str(host.passwd)))
         
-    
     def init_ui(self):
         self.resize(1000, 700)
         
         # 巡检按钮需要先通过连接性测试才能激活
         self.btn_inspection.setEnabled(False)
-        
         # 设置固定窗口大小
         self.setFixedSize(self.width(), self.height())
+        
+        # 设置行数
+        self.tw_host_info.setRowCount(3)
+        self.tw_host_info.setColumnCount(4)
     
     # 槽部分
     def init_slot(self):
