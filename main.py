@@ -68,7 +68,7 @@ class SSHExecCmdWoker(QThread):
     conn = None
     signal_ssh_cmd_exec_over = pyqtSignal()
     
-    def __init__(self, cmd_array:list):
+    def __init__(self, host, cmd_array:list):
         super(SSHExecCmdWoker, self).__init__()
         self.run = True
         
@@ -100,60 +100,58 @@ class SSHExecCmdWoker(QThread):
         return result_str
 
 class SSHConnTestWorker(QThread):
-    signal_ssh_connected = pyqtSignal()
-    signal_ssh_not_connected = pyqtSignal()
+    signal_ssh_connected = pyqtSignal(str)
     
-    def __init__(self, mainwindow):
+    def __init__(self, host):
         super(SSHConnTestWorker, self).__init__()
-        self.mainwindow = mainwindow
         self.run = True
-        self.ip = mainwindow.ip
+        self.ip = host.ip
         self.port = 22
-        self.username = mainwindow.username
-        self.passwd = mainwindow.passwd
+        self.username = host.username
+        self.passwd = host.passwd
+        self.host = host
         
-        self.signal_ssh_connected.connect(self.update_ui_connected)
-        self.signal_ssh_not_connected.connect(self.update_ui_not_connected)
-        
-    def update_ui_connected(self):
-        self.mainwindow.te_cmd_output.setText("链接测试通过✅")
-        # ssh连通，打开巡检按钮
-        self.mainwindow.btn_inspection.setEnabled(True)
-        # self.mainwindow.te_cmd_output.setText(connect_msg)
-        
-    def update_ui_not_connected(self):
-        self.mainwindow.te_cmd_output.setText("链接测试失败❎")
+    # def update_ui_connected(self):
+    #     self.mainwindow.te_cmd_output.setText("链接测试通过✅")
+    #     # ssh连通，打开巡检按钮
+    #     self.mainwindow.btn_inspection.setEnabled(True)
+    #     # self.mainwindow.te_cmd_output.setText(connect_msg)
+    #     
+    # def update_ui_not_connected(self):
+    #     self.mainwindow.te_cmd_output.setText("链接测试失败❎")
     
     def run(self):
         is_connected, conn = self.try_connect()
         if is_connected:
-            self.signal_ssh_connected.emit()
+            print("connected")
+            # self.signal_ssh_connected.emit("✅")
         else:
-            self.signal_ssh_not_connected.emit()
+            print("not connected")
+            # self.signal_ssh_connected.emit("❎")
         
     # 返回连接状态(bool)，连接句柄(conn)
     def try_connect(self):
         dev = {
             'device_type': 'linux',
-            'username': self.username,
-            'password': self.passwd,
+            'username': self.host.username,
+            'password': self.host.passwd,
             'port': 22,
-            'host': self.ip,
+            'host': self.host.ip,
         }
         print_template = ("==============================================================\n时间: %s\n命令执行状态: %s\n当前执行命令： %s\n命令执行结果: \n%s\n")
             
         try:
             with Netmiko(**dev) as ssh:
                 # 保存ssh连接
-                self.conn = ssh
-                self.status = True
+                self.host.conn = ssh
+                self.host.status = True
             
         except Exception as e:
-            self.conn = None
-            self.status = False
+            self.host.conn = None
+            self.host.status = False
         
-        return (self.status, self.conn)
-    
+        return (self.host.status, self.host.conn)
+        
 class HostInfoInput(Ui_host_info_input.Ui_Form, QWidget):
     host_ip = None
     host_passwd = None
@@ -228,6 +226,8 @@ class AboutWidget(Ui_about.Ui_Form, QWidget):
 class MainWindow(UI_mainwidget.Ui_Form, QWidget):
     # 主机列表
     hosts = []
+    ssh_conn_test_workers = list()
+    ssh_exec_cmd_workers = list()
     
     def __init__(self, parent=None):
         super(MainWindow, self).__init__(parent)
@@ -274,16 +274,16 @@ class MainWindow(UI_mainwidget.Ui_Form, QWidget):
         
     # buttom side UI logic
     def btn_conn_test_clicked(self):
-        for host in self.hosts:
+        # 测试所有主机
+        for i, host in enumerate(self.hosts):
             # init ssh woker
-            self.ssh_conn_test_worker = SSHConnTestWorker(self)
-            self.ssh_conn_test_worker.start()
+            self.ssh_conn_test_workers.append(SSHConnTestWorker(host))
+            self.ssh_conn_test_workers[i].start()
         self.showProgregssDialog()
         
     def btn_inspection_clicked(self):
-        for host in self.hosts:
-            self.ssh_exec_cmd_worker = SSHExecCmdWoker()
-            self.ssh_exec_cmd_worker.start()
+        self.ssh_exec_cmd_worker = SSHExecCmdWoker(self.hosts)
+        self.ssh_exec_cmd_worker.start()
         self.showProgregssDialog()
         
     def btn_about_clicked(self):
@@ -310,9 +310,7 @@ class MainWindow(UI_mainwidget.Ui_Form, QWidget):
         pass
     
     def add_host(self, host_info):
-        print("signal add host recieved")
         self.hosts.append(Host(ip=host_info['ip'], username=host_info['username'], passwd=host_info['passwd']))
-        print("add host complete")
         
         # 操作完成，发送信号
         print("send update signal")
@@ -358,8 +356,6 @@ class MainWindow(UI_mainwidget.Ui_Form, QWidget):
         
         # 子窗口
         self.host_info_input = HostInfoInput()
-        print("signal")
-        print(self.host_info_input.signal_host_info_input_widget_add)
         
     # 槽部分
     def init_slot(self):
