@@ -47,9 +47,12 @@ class Host():
     ip = None
     passwd = None
     username = None
-    conn = None
     host_type = None
+    
+    conn = None
     status = None
+    cmd_result = str()
+    cmd_array = list()
     
     def __init__(self, ip, username, passwd):
         self.ip = ip
@@ -64,40 +67,48 @@ class Host():
     
     def get_passwd(self):
         return self.passwd
-
-class SSHExecCmdWoker(QThread):
-    conn = None
-    signal_ssh_cmd_exec_over = pyqtSignal()
     
-    def __init__(self, host, cmd_array:list):
-        super(SSHExecCmdWoker, self).__init__()
+    def set_cmd_array(self, cmd_array: list):
+        self.cmd_array = cmd_array
+
+    def get_cmd_array(self) -> list:
+        return self.cmd_array
+    
+    def get_cmd_result(self) -> str:
+        return self.cmd_result
+    
+class SSHCmdExecWoker(QThread):
+    signal_ssh_cmd_exec_over = pyqtSignal(str)
+    
+    def __init__(self, host):
+        super(SSHCmdExecWoker, self).__init__()
         self.run = True
         
+        self.host = host
+        
     def run(self):
-        cmd_exec_result = self.exec_cmd_array()
-        self.signal_ssh_cmd_exec_over.emit(cmd_exec_result)
+        self.host.cmd_result = self.exec_cmd_array()
+        print("host cmd result in thread:" + self.host.cmd_result)
     
     def exec_cmd_array(self) -> str:
         cmd_exec_result = ""
-        for self.cmd in self.cmd_array:
-            cmd_exec_result += self.exec_cmd(self.cmd)
-        
+        for cmd in self.host.cmd_array:
+            cmd_exec_result += self.exec_cmd(cmd)
         return cmd_exec_result
         
     def exec_cmd(self, cmd) -> str:
         # print_template = ("===================================================================\n时间: %s\n命令执行状态: %s\n命令执行结果: \n%s\n===================================================================\n")
-        print_template = ("==============================================================\n时间: %s\n命令执行状态: %s\n当前执行命令： %s\n命令执行结果: \n%s\n")
+        print_template = ("==============================================================\n时间: %s\n主机: %s\n命令执行状态: %s\n当前执行命令: %s\n命令执行结果: \n%s\n")
+        result_str = ""
         
+        cur_time = time.asctime()
         try:
-            cur_time = time.asctime()
-            # TOTO, set text color to red
-            real_info = self.ssh.send_command(cmd)
-            result_str = print_template % (cur_time, '执行成功', cmd, real_info)
-
+            # TODO, set text color to red
+            real_info = self.host.conn.send_command(cmd)
+            result_str = print_template % (cur_time, self.host.ip, '执行成功', cmd, real_info)
         except Exception as e:
             cur_time = time.asctime()
-            result_str = print_template % (cur_time, '执行失败', cmd, '')
-            
+            result_str = print_template % (cur_time, self.host.ip, '执行失败', cmd, '')
         return result_str
 
 class SSHConnTestWorker(QThread):
@@ -108,25 +119,15 @@ class SSHConnTestWorker(QThread):
         self.host = host
         self.run = True
         
-    # def update_ui_connected(self):
-    #     self.mainwindow.te_cmd_output.setText("链接测试通过✅")
-    #     # ssh连通，打开巡检按钮
-    #     self.mainwindow.btn_inspection.setEnabled(True)
-    #     # self.mainwindow.te_cmd_output.setText(connect_msg)
-    #     
-    # def update_ui_not_connected(self):
-    #     self.mainwindow.te_cmd_output.setText("链接测试失败❎")
-    
     def run(self):
         is_connected, host = self.try_connect()
         
+        # ? 是否有必要加锁
         qmutex = QMutex()
         qmutex.lock() 
         if is_connected:
-            print(host.ip + "connected")
             self.host.status = True
         else:
-            print(host.ip + "not connected")
             self.host.status = False
         qmutex.unlock()
         
@@ -142,10 +143,10 @@ class SSHConnTestWorker(QThread):
         print_template = ("==============================================================\n时间: %s\n命令执行状态: %s\n当前执行命令： %s\n命令执行结果: \n%s\n")
             
         try:
-            with Netmiko(**dev) as ssh:
-                # 保存ssh连接
-                self.host.conn = ssh
-                self.host.status = True
+            ssh = Netmiko(**dev)
+            # 保存ssh连接
+            self.host.conn = ssh
+            self.host.status = True
             
         except Exception as e:
             self.host.conn = None
@@ -159,7 +160,7 @@ class HostInfoInput(Ui_host_info_input.Ui_Form, QWidget):
     host_username = None
     
     # 发送添加主机信号
-    signal_host_info_input_widget_add = pyqtSignal(str)
+    signal_host_info_input_widget_add_host = pyqtSignal(str)
     
     # host_info_input widget的信号，接收子窗口传过来的IP，账号，密码
     signal_host_info_input_widget_data = pyqtSignal(dict)
@@ -228,7 +229,11 @@ class MainWindow(UI_mainwidget.Ui_Form, QWidget):
     # 主机列表
     hosts = []
     ssh_conn_test_workers = list()
-    ssh_exec_cmd_workers = list()
+    ssh_cmd_exec_workers = list()
+    cmd_results = str()
+        
+    
+    signal_mainwindow_del_host = pyqtSignal(str)
     
     def __init__(self, parent=None):
         super(MainWindow, self).__init__(parent)
@@ -238,7 +243,7 @@ class MainWindow(UI_mainwidget.Ui_Form, QWidget):
         
     def showProgregssDialog(self):
        # num = 10000
-       num = 5000
+       num = 8000
        progress = QProgressDialog(self)
        progress.setWindowTitle("请稍等")  
        progress.setLabelText("正在测试连接...")
@@ -276,9 +281,9 @@ class MainWindow(UI_mainwidget.Ui_Form, QWidget):
     # buttom side UI logic
     def btn_conn_test_clicked(self):
         # 开启计时器，2秒后超时
-        self.qtimer_ssh_timeout = QTimer(self)
-        self.qtimer_ssh_timeout.start(2000)
-        self.qtimer_ssh_timeout.timeout.connect(self.update_ui_host)
+        self.qtimer_ssh_conn_test_timeout = QTimer(self)
+        self.qtimer_ssh_conn_test_timeout.start(2000)
+        self.qtimer_ssh_conn_test_timeout.timeout.connect(self.update_ui_host)
         
         # 测试所有主机
         for i, host in enumerate(self.hosts):
@@ -287,11 +292,38 @@ class MainWindow(UI_mainwidget.Ui_Form, QWidget):
             self.ssh_conn_test_workers[i].start()
         
         self.showProgregssDialog()
+        self.btn_inspection.setEnabled(True)
         
     def btn_inspection_clicked(self):
-        self.ssh_exec_cmd_worker = SSHExecCmdWoker(self.hosts)
-        self.ssh_exec_cmd_worker.start()
-        self.showProgregssDialog()
+        # self.qtimer_ssh_exec_timeout = QTimer()
+        # self.qtimer_ssh_exec_timeout.start(1000)
+        # self.qtimer_ssh_exec_timeout.timeout.connect(self.update_ui_cmd_result)
+        
+        cmd_array = list()
+        te_cmd_input_data = self.te_cmd_input.toPlainText()
+        
+        for cmd in te_cmd_input_data.split('\n'):
+            cmd_array.append(cmd)
+            
+        alive_hosts = [ alive_host for alive_host in self.hosts if alive_host.conn ]
+        
+                
+        # 执行指令
+        for i, host in enumerate(alive_hosts):
+            self.hosts[i].cmd_array = cmd_array
+            # init ssh woker
+            self.ssh_cmd_exec_workers.append(SSHCmdExecWoker(host))
+            self.ssh_cmd_exec_workers[i].start()
+        
+        time.sleep(0.5)
+            
+        # 输出
+        for i, host in enumerate(alive_hosts):
+            print("host cmd_result:" + host.cmd_result)
+            self.cmd_results += host.cmd_result
+        self.te_cmd_output.setText(self.cmd_results)
+        # 清除上一次的记录
+        self.cmd_results = ''
         
     def btn_about_clicked(self):
         AboutWidget().show()
@@ -309,19 +341,55 @@ class MainWindow(UI_mainwidget.Ui_Form, QWidget):
             for i, host in enumerate(selected_items):
                 selected_items = self.tw_host_info.selectedItems()[i].text()
                 self.del_host(selected_items)
+        self.signal_mainwindow_del_host.emit("done")
     
     def btn_undo_host_clicked(self):
         pass
     
     def btn_batch_host_import_clicked(self):
-        pass
+        fdlg = QFileDialog()
+        fdlg.setFileMode(QFileDialog.FileMode.AnyFile)
+        
+        if fdlg.exec():
+            #接受选中文件的路径，默认为列表
+            filenames = fdlg.selectedFiles()
+            #列表中的第一个元素即是文件路径，以只读的方式打开文件
+            f=open(filenames[0],'r')
+
+            with f:
+                #接受读取的内容，并显示到多行文本框中
+                lines = f.readlines()
+                for line in lines:
+                    # min len of ip is 1.1.1.1
+                    # no ip found
+                    if len(line) < 7:
+                        continue
+                    
+                    # clean the line
+                    host_info = ''
+                    for i, c in enumerate(line):
+                        if c == '\n':
+                            pass
+                        # any other blank character, replace it with space
+                        if c == '\t':
+                            host_info += ' '
+                        if c == '\n':
+                            continue
+                        else:
+                            host_info += c
+                        
+                    ip = host_info.split(' ')[0]
+                    username = host_info.split(' ')[1]
+                    passwd = host_info.split(' ')[2]
+                    
+                    self.hosts.append(Host(ip=ip, username=username, passwd=passwd))
+                    self.update_ui_host()
     
     def add_host(self, host_info):
         self.hosts.append(Host(ip=host_info['ip'], username=host_info['username'], passwd=host_info['passwd']))
         
         # 操作完成，发送信号
-        print("send update signal")
-        self.host_info_input.signal_host_info_input_widget_add.emit("")
+        self.host_info_input.signal_host_info_input_widget_add_host.emit("")
 
     def del_host(self, ip):
         for host in self.hosts:
@@ -333,8 +401,21 @@ class MainWindow(UI_mainwidget.Ui_Form, QWidget):
         for host in self.hosts:
             print("Host:%s\nUsername:%s\nPasswd:%s" % host.ip, host.username, host.passwd)
         
+    def update_ui_cmd_result(self):
+        print("result:" + self.cmd_results)
+        self.te_cmd_output.setText(self.cmd_results)
+    
     # UI更新部分
+    # TODO 文字居中
     def update_ui_host(self):
+        # clear tablewidget
+        for i in range(self.tw_host_info.rowCount()):
+            self.tw_host_info.setItem(i, 0, QTableWidgetItem(''))
+            self.tw_host_info.setItem(i, 1, QTableWidgetItem(''))
+            self.tw_host_info.setItem(i, 2, QTableWidgetItem(''))
+            self.tw_host_info.setItem(i, 3, QTableWidgetItem(''))
+        
+        # set tablewidget
         for i, host in enumerate(self.hosts):
             self.tw_host_info.setItem(i, 0, QTableWidgetItem(host.ip))
             self.tw_host_info.setItem(i, 1, QTableWidgetItem(host.username))
@@ -342,7 +423,7 @@ class MainWindow(UI_mainwidget.Ui_Form, QWidget):
             if host.status == True:
                 self.tw_host_info.setItem(i, 3, QTableWidgetItem("✅"))
             else:
-                self.tw_host_info.setItem(i, 3, QTableWidgetItem("❎"))
+                self.tw_host_info.setItem(i, 3, QTableWidgetItem("❌"))
         
     def init_ui(self):
         self.resize(1000, 700)
@@ -377,7 +458,8 @@ class MainWindow(UI_mainwidget.Ui_Form, QWidget):
         
         # 子窗口信号连接
         self.host_info_input.signal_host_info_input_widget_data.connect(lambda host_info: self.add_host(host_info))
-        self.host_info_input.signal_host_info_input_widget_add.connect(lambda x: self.update_ui_host())
+        self.host_info_input.signal_host_info_input_widget_add_host.connect(lambda x: self.update_ui_host())
+        self.signal_mainwindow_del_host.connect(lambda x: self.update_ui_host())
         
 if __name__ == "__main__":
     app = QApplication(sys.argv)
