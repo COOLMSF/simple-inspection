@@ -12,7 +12,7 @@ from PyQt6 import QtCore
 from PyQt6.QtCore import (QStringListModel, QDir)
 from PyQt6 import QtWidgets
 from PyQt6 import sip
-from PyQt6.QtCore import QThread, QObject, pyqtSignal
+from PyQt6.QtCore import QThread, QObject, pyqtSignal, QMutex, QTimer
 
 from PyQt6.QtWidgets import (
     QVBoxLayout,
@@ -49,6 +49,7 @@ class Host():
     username = None
     conn = None
     host_type = None
+    status = None
     
     def __init__(self, ip, username, passwd):
         self.ip = ip
@@ -100,16 +101,12 @@ class SSHExecCmdWoker(QThread):
         return result_str
 
 class SSHConnTestWorker(QThread):
-    signal_ssh_connected = pyqtSignal(str)
+    signal_ssh_connected = pyqtSignal(dict)
     
     def __init__(self, host):
         super(SSHConnTestWorker, self).__init__()
-        self.run = True
-        self.ip = host.ip
-        self.port = 22
-        self.username = host.username
-        self.passwd = host.passwd
         self.host = host
+        self.run = True
         
     # def update_ui_connected(self):
     #     self.mainwindow.te_cmd_output.setText("链接测试通过✅")
@@ -121,13 +118,17 @@ class SSHConnTestWorker(QThread):
     #     self.mainwindow.te_cmd_output.setText("链接测试失败❎")
     
     def run(self):
-        is_connected, conn = self.try_connect()
+        is_connected, host = self.try_connect()
+        
+        qmutex = QMutex()
+        qmutex.lock() 
         if is_connected:
-            print("connected")
-            # self.signal_ssh_connected.emit("✅")
+            print(host.ip + "connected")
+            self.host.status = True
         else:
-            print("not connected")
-            # self.signal_ssh_connected.emit("❎")
+            print(host.ip + "not connected")
+            self.host.status = False
+        qmutex.unlock()
         
     # 返回连接状态(bool)，连接句柄(conn)
     def try_connect(self):
@@ -150,7 +151,7 @@ class SSHConnTestWorker(QThread):
             self.host.conn = None
             self.host.status = False
         
-        return (self.host.status, self.host.conn)
+        return (self.host.status, self.host)
         
 class HostInfoInput(Ui_host_info_input.Ui_Form, QWidget):
     host_ip = None
@@ -274,11 +275,17 @@ class MainWindow(UI_mainwidget.Ui_Form, QWidget):
         
     # buttom side UI logic
     def btn_conn_test_clicked(self):
+        # 开启计时器，2秒后超时
+        self.qtimer_ssh_timeout = QTimer(self)
+        self.qtimer_ssh_timeout.start(2000)
+        self.qtimer_ssh_timeout.timeout.connect(self.update_ui_host)
+        
         # 测试所有主机
         for i, host in enumerate(self.hosts):
             # init ssh woker
             self.ssh_conn_test_workers.append(SSHConnTestWorker(host))
             self.ssh_conn_test_workers[i].start()
+        
         self.showProgregssDialog()
         
     def btn_inspection_clicked(self):
@@ -314,7 +321,7 @@ class MainWindow(UI_mainwidget.Ui_Form, QWidget):
         
         # 操作完成，发送信号
         print("send update signal")
-        self.host_info_input.signal_host_info_input_widget_add.emit("done")
+        self.host_info_input.signal_host_info_input_widget_add.emit("")
 
     def del_host(self, ip):
         for host in self.hosts:
@@ -327,20 +334,15 @@ class MainWindow(UI_mainwidget.Ui_Form, QWidget):
             print("Host:%s\nUsername:%s\nPasswd:%s" % host.ip, host.username, host.passwd)
         
     # UI更新部分
-    def update_ui_host(self, msg):
-        if msg == "done":
-            print("row count from update")
-            print(self.tw_host_info.rowCount())
-            print(self.tw_host_info.columnCount())
-            for i, host in enumerate(self.hosts):
-                print(i, str(host.ip), host.username, host.passwd)
-                print(self.tw_host_info)
-                self.tw_host_info.setItem(i, 0, QTableWidgetItem(host.ip))
-                self.tw_host_info.setItem(i, 1, QTableWidgetItem(host.username))
-                self.tw_host_info.setItem(i, 2, QTableWidgetItem(host.passwd))
-            print("update ui done")
-        else:
-            QMessageBox("asd")
+    def update_ui_host(self):
+        for i, host in enumerate(self.hosts):
+            self.tw_host_info.setItem(i, 0, QTableWidgetItem(host.ip))
+            self.tw_host_info.setItem(i, 1, QTableWidgetItem(host.username))
+            self.tw_host_info.setItem(i, 2, QTableWidgetItem(host.passwd))
+            if host.status == True:
+                self.tw_host_info.setItem(i, 3, QTableWidgetItem("✅"))
+            else:
+                self.tw_host_info.setItem(i, 3, QTableWidgetItem("❎"))
         
     def init_ui(self):
         self.resize(1000, 700)
@@ -374,8 +376,8 @@ class MainWindow(UI_mainwidget.Ui_Form, QWidget):
         self.btn_inspection.clicked.connect(lambda x: self.btn_inspection_clicked())
         
         # 子窗口信号连接
-        self.host_info_input.signal_host_info_input_widget_data.connect(lambda x: self.add_host(x))
-        self.host_info_input.signal_host_info_input_widget_add.connect(lambda x: self.update_ui_host(x))
+        self.host_info_input.signal_host_info_input_widget_data.connect(lambda host_info: self.add_host(host_info))
+        self.host_info_input.signal_host_info_input_widget_add.connect(lambda x: self.update_ui_host())
         
 if __name__ == "__main__":
     app = QApplication(sys.argv)

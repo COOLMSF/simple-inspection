@@ -13,3 +13,7 @@
 ## BUG
 - windows和macos界面不一致
 
+
+## 运行截图
+![运行截图](./images/main.png "aa")
+
