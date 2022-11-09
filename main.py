@@ -40,9 +40,6 @@ import paramiko
 from paramiko import ssh_exception
 from paramiko.ssh_exception import AuthenticationException
 
-# 全局ssh句柄
-conn = None
-
 class Host():
     ip = None
     passwd = None
@@ -406,7 +403,7 @@ class MainWindow(UI_mainwidget.Ui_Form, QWidget):
         self.te_cmd_output.setText(self.cmd_results)
     
     # UI更新部分
-    # TODO 文字居中
+    # TODO text alignment
     def update_ui_host(self):
         # clear tablewidget
         for i in range(self.tw_host_info.rowCount()):
@@ -417,16 +414,16 @@ class MainWindow(UI_mainwidget.Ui_Form, QWidget):
         
         # set tablewidget
         for i, host in enumerate(self.hosts):
-            self.tw_host_info.setItem(i, 0, QTableWidgetItem(host.ip))
+            self.tw_host_info.setItem(i, 0, QTableWidgetItem(host.ip).textAlignment(QtCore.Ali))
             self.tw_host_info.setItem(i, 1, QTableWidgetItem(host.username))
             self.tw_host_info.setItem(i, 2, QTableWidgetItem(host.passwd))
             if host.status == True:
-                self.tw_host_info.setItem(i, 3, QTableWidgetItem("✅"))
+                self.tw_host_info.setItem(i, 3, QTableWidgetItem("✔️"))
             else:
                 self.tw_host_info.setItem(i, 3, QTableWidgetItem("❌"))
         
     def init_ui(self):
-        self.resize(1000, 700)
+        # self.resize(1000, 1000)
         
         # 巡检按钮需要先通过连接性测试才能激活
         self.btn_inspection.setEnabled(False)
