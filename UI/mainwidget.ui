@@ -6,257 +6,298 @@
    <rect>
     <x>0</x>
     <y>0</y>
-    <width>1920</width>
-    <height>1052</height>
+    <width>1291</width>
+    <height>872</height>
    </rect>
   </property>
   <property name="windowTitle">
    <string>Form</string>
   </property>
-  <widget class="QWidget" name="">
-   <property name="geometry">
-    <rect>
-     <x>270</x>
-     <y>70</y>
-     <width>1271</width>
-     <height>741</height>
-    </rect>
-   </property>
-   <layout class="QVBoxLayout" name="verticalLayout_4">
-    <item>
-     <layout class="QHBoxLayout" name="horizontalLayout_5">
-      <item>
-       <layout class="QHBoxLayout" name="horizontalLayout_3"/>
-      </item>
-      <item>
-       <layout class="QHBoxLayout" name="horizontalLayout_4">
-        <item>
-         <layout class="QVBoxLayout" name="verticalLayout_3">
-          <item>
-           <widget class="QPushButton" name="btn_batch_host_import">
-            <property name="text">
-             <string>批量导入主机</string>
-            </property>
-           </widget>
-          </item>
-          <item>
-           <widget class="QPushButton" name="btn_add_host">
-            <property name="text">
-             <string>添加主机</string>
-            </property>
-           </widget>
-          </item>
-          <item>
-           <widget class="QPushButton" name="btn_del_host">
-            <property name="text">
-             <string>删除主机</string>
-            </property>
-           </widget>
-          </item>
-          <item>
-           <widget class="QPushButton" name="btn_undo_host">
-            <property name="text">
-             <string>撤销</string>
-            </property>
-           </widget>
-          </item>
-         </layout>
-        </item>
-       </layout>
-      </item>
-      <item>
-       <widget class="QTableWidget" name="tw_host_info">
-        <property name="minimumSize">
-         <size>
-          <width>256</width>
-          <height>192</height>
-         </size>
-        </property>
-        <column>
-         <property name="text">
-          <string>主机ip</string>
+  <layout class="QGridLayout" name="gridLayout">
+   <item row="0" column="1">
+    <layout class="QHBoxLayout" name="horizontalLayout_2">
+     <item>
+      <layout class="QVBoxLayout" name="verticalLayout">
+       <item>
+        <widget class="QLabel" name="label_7">
+         <property name="minimumSize">
+          <size>
+           <width>83</width>
+           <height>149</height>
+          </size>
          </property>
-        </column>
-        <column>
-         <property name="text">
-          <string>用户名</string>
+         <property name="maximumSize">
+          <size>
+           <width>83</width>
+           <height>149</height>
+          </size>
          </property>
-        </column>
-        <column>
          <property name="text">
-          <string>密码</string>
+          <string>&lt;html&gt;&lt;head/&gt;&lt;body&gt;&lt;p align=&quot;center&quot;&gt;&lt;span style=&quot; font-size:14pt;&quot;&gt;命令&lt;/span&gt;&lt;/p&gt;&lt;/body&gt;&lt;/html&gt;</string>
          </property>
-        </column>
-        <column>
+        </widget>
+       </item>
+       <item>
+        <widget class="QPushButton" name="btn_batch_cmd_import">
+         <property name="minimumSize">
+          <size>
+           <width>83</width>
+           <height>32</height>
+          </size>
+         </property>
+         <property name="maximumSize">
+          <size>
+           <width>83</width>
+           <height>32</height>
+          </size>
+         </property>
          <property name="text">
-          <string>连接状态</string>
+          <string>批量导入</string>
          </property>
-        </column>
-       </widget>
-      </item>
-      <item>
-       <layout class="QHBoxLayout" name="horizontalLayout">
-        <item>
-         <layout class="QVBoxLayout" name="verticalLayout">
-          <item>
-           <widget class="QLabel" name="label_7">
-            <property name="minimumSize">
-             <size>
-              <width>83</width>
-              <height>149</height>
-             </size>
-            </property>
-            <property name="maximumSize">
-             <size>
-              <width>83</width>
-              <height>149</height>
-             </size>
-            </property>
-            <property name="text">
-             <string>&lt;html&gt;&lt;head/&gt;&lt;body&gt;&lt;p align=&quot;center&quot;&gt;&lt;span style=&quot; font-size:14pt;&quot;&gt;命令&lt;/span&gt;&lt;/p&gt;&lt;/body&gt;&lt;/html&gt;</string>
-            </property>
-           </widget>
-          </item>
-          <item>
-           <widget class="QPushButton" name="btn_batch_cmd_import">
-            <property name="minimumSize">
-             <size>
-              <width>83</width>
-              <height>32</height>
-             </size>
-            </property>
-            <property name="maximumSize">
-             <size>
-              <width>83</width>
-              <height>32</height>
-             </size>
-            </property>
-            <property name="text">
-             <string>批量导入</string>
-            </property>
-           </widget>
-          </item>
-         </layout>
-        </item>
-        <item>
-         <widget class="QTextEdit" name="te_cmd_input"/>
-        </item>
-       </layout>
-      </item>
-     </layout>
-    </item>
-    <item>
-     <layout class="QVBoxLayout" name="verticalLayout_2">
-      <item>
-       <widget class="QLabel" name="label">
-        <property name="minimumSize">
-         <size>
-          <width>98</width>
-          <height>29</height>
-         </size>
-        </property>
-        <property name="maximumSize">
-         <size>
-          <width>98</width>
-          <height>29</height>
-         </size>
-        </property>
-        <property name="text">
-         <string>&lt;html&gt;&lt;head/&gt;&lt;body&gt;&lt;p align=&quot;center&quot;&gt;&lt;span style=&quot; font-size:14pt;&quot;&gt;当前运行结果&lt;/span&gt;&lt;/p&gt;&lt;/body&gt;&lt;/html&gt;</string>
-        </property>
-       </widget>
-      </item>
-      <item>
-       <widget class="QTextEdit" name="te_cmd_output">
-        <property name="styleSheet">
-         <string notr="true">border:2px groove gray;border-radius:10px;padding:2px 4px</string>
-        </property>
-       </widget>
-      </item>
-      <item>
-       <layout class="QHBoxLayout" name="horizontalLayout_2">
-        <item>
-         <widget class="QPushButton" name="btn_conn_test">
-          <property name="minimumSize">
-           <size>
-            <width>137</width>
-            <height>32</height>
-           </size>
-          </property>
-          <property name="maximumSize">
-           <size>
-            <width>137</width>
-            <height>32</height>
-           </size>
-          </property>
-          <property name="text">
-           <string>连接性测试</string>
-          </property>
-         </widget>
-        </item>
-        <item>
-         <widget class="QPushButton" name="btn_export">
-          <property name="minimumSize">
-           <size>
-            <width>136</width>
-            <height>32</height>
-           </size>
-          </property>
-          <property name="maximumSize">
-           <size>
-            <width>136</width>
-            <height>32</height>
-           </size>
-          </property>
-          <property name="text">
-           <string>导出报告</string>
-          </property>
-         </widget>
-        </item>
-        <item>
-         <widget class="QPushButton" name="btn_inspection">
-          <property name="minimumSize">
-           <size>
-            <width>137</width>
-            <height>32</height>
-           </size>
-          </property>
-          <property name="maximumSize">
-           <size>
-            <width>137</width>
-            <height>32</height>
-           </size>
-          </property>
-          <property name="text">
-           <string>巡检</string>
-          </property>
-         </widget>
-        </item>
-        <item>
-         <widget class="QPushButton" name="btn_about">
-          <property name="minimumSize">
-           <size>
-            <width>137</width>
-            <height>32</height>
-           </size>
-          </property>
-          <property name="maximumSize">
-           <size>
-            <width>137</width>
-            <height>32</height>
-           </size>
-          </property>
-          <property name="text">
-           <string>关于</string>
-          </property>
-         </widget>
-        </item>
-       </layout>
-      </item>
-     </layout>
-    </item>
-   </layout>
-  </widget>
+        </widget>
+       </item>
+      </layout>
+     </item>
+     <item>
+      <widget class="QTextEdit" name="te_cmd_input">
+       <property name="minimumSize">
+        <size>
+         <width>463</width>
+         <height>0</height>
+        </size>
+       </property>
+       <property name="maximumSize">
+        <size>
+         <width>463</width>
+         <height>361</height>
+        </size>
+       </property>
+       <property name="styleSheet">
+        <string notr="true">border:2px groove gray;border-radius:10px;padding:2px 4px</string>
+       </property>
+      </widget>
+     </item>
+    </layout>
+   </item>
+   <item row="1" column="0">
+    <widget class="QLabel" name="label">
+     <property name="minimumSize">
+      <size>
+       <width>98</width>
+       <height>29</height>
+      </size>
+     </property>
+     <property name="maximumSize">
+      <size>
+       <width>98</width>
+       <height>29</height>
+      </size>
+     </property>
+     <property name="text">
+      <string>&lt;html&gt;&lt;head/&gt;&lt;body&gt;&lt;p align=&quot;center&quot;&gt;&lt;span style=&quot; font-size:14pt;&quot;&gt;当前运行结果&lt;/span&gt;&lt;/p&gt;&lt;/body&gt;&lt;/html&gt;</string>
+     </property>
+    </widget>
+   </item>
+   <item row="0" column="0">
+    <layout class="QHBoxLayout" name="horizontalLayout">
+     <item>
+      <layout class="QVBoxLayout" name="verticalLayout_2">
+       <item>
+        <widget class="QPushButton" name="btn_batch_host_import">
+         <property name="minimumSize">
+          <size>
+           <width>110</width>
+           <height>0</height>
+          </size>
+         </property>
+         <property name="maximumSize">
+          <size>
+           <width>110</width>
+           <height>32</height>
+          </size>
+         </property>
+         <property name="text">
+          <string>批量导入主机</string>
+         </property>
+        </widget>
+       </item>
+       <item>
+        <widget class="QPushButton" name="btn_add_host">
+         <property name="minimumSize">
+          <size>
+           <width>110</width>
+           <height>0</height>
+          </size>
+         </property>
+         <property name="maximumSize">
+          <size>
+           <width>110</width>
+           <height>32</height>
+          </size>
+         </property>
+         <property name="text">
+          <string>添加主机</string>
+         </property>
+        </widget>
+       </item>
+       <item>
+        <widget class="QPushButton" name="btn_del_host">
+         <property name="minimumSize">
+          <size>
+           <width>110</width>
+           <height>0</height>
+          </size>
+         </property>
+         <property name="maximumSize">
+          <size>
+           <width>110</width>
+           <height>32</height>
+          </size>
+         </property>
+         <property name="text">
+          <string>删除主机</string>
+         </property>
+        </widget>
+       </item>
+       <item>
+        <widget class="QPushButton" name="btn_undo_host">
+         <property name="minimumSize">
+          <size>
+           <width>110</width>
+           <height>0</height>
+          </size>
+         </property>
+         <property name="maximumSize">
+          <size>
+           <width>110</width>
+           <height>32</height>
+          </size>
+         </property>
+         <property name="text">
+          <string>撤销</string>
+         </property>
+        </widget>
+       </item>
+      </layout>
+     </item>
+     <item>
+      <widget class="QTableWidget" name="tw_host_info">
+       <property name="minimumSize">
+        <size>
+         <width>561</width>
+         <height>192</height>
+        </size>
+       </property>
+       <property name="maximumSize">
+        <size>
+         <width>561</width>
+         <height>363</height>
+        </size>
+       </property>
+      </widget>
+     </item>
+    </layout>
+   </item>
+   <item row="2" column="0" colspan="2" alignment="Qt::AlignHCenter">
+    <widget class="QTextEdit" name="te_cmd_output">
+     <property name="minimumSize">
+      <size>
+       <width>1267</width>
+       <height>0</height>
+      </size>
+     </property>
+     <property name="maximumSize">
+      <size>
+       <width>1267</width>
+       <height>283</height>
+      </size>
+     </property>
+     <property name="styleSheet">
+      <string notr="true">border:2px groove gray;border-radius:10px;padding:2px 4px</string>
+     </property>
+    </widget>
+   </item>
+   <item row="4" column="0">
+    <layout class="QHBoxLayout" name="horizontalLayout_3">
+     <item>
+      <widget class="QPushButton" name="btn_export">
+       <property name="minimumSize">
+        <size>
+         <width>136</width>
+         <height>32</height>
+        </size>
+       </property>
+       <property name="maximumSize">
+        <size>
+         <width>136</width>
+         <height>32</height>
+        </size>
+       </property>
+       <property name="text">
+        <string>导出报告</string>
+       </property>
+      </widget>
+     </item>
+     <item>
+      <widget class="QPushButton" name="btn_about">
+       <property name="minimumSize">
+        <size>
+         <width>137</width>
+         <height>32</height>
+        </size>
+       </property>
+       <property name="maximumSize">
+        <size>
+         <width>137</width>
+         <height>32</height>
+        </size>
+       </property>
+       <property name="text">
+        <string>关于</string>
+       </property>
+      </widget>
+     </item>
+     <item>
+      <widget class="QPushButton" name="btn_conn_test">
+       <property name="minimumSize">
+        <size>
+         <width>137</width>
+         <height>32</height>
+        </size>
+       </property>
+       <property name="maximumSize">
+        <size>
+         <width>137</width>
+         <height>32</height>
+        </size>
+       </property>
+       <property name="text">
+        <string>连接性测试</string>
+       </property>
+      </widget>
+     </item>
+     <item>
+      <widget class="QPushButton" name="btn_inspection">
+       <property name="minimumSize">
+        <size>
+         <width>137</width>
+         <height>32</height>
+        </size>
+       </property>
+       <property name="maximumSize">
+        <size>
+         <width>137</width>
+         <height>32</height>
+        </size>
+       </property>
+       <property name="text">
+        <string>巡检</string>
+       </property>
+      </widget>
+     </item>
+    </layout>
+   </item>
+  </layout>
  </widget>
  <resources/>
  <connections/>

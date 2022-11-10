@@ -10,7 +10,6 @@ from view import Ui_host_info_input
 from PyQt6.QtGui import QRegularExpressionValidator
 from PyQt6 import QtCore 
 from PyQt6.QtCore import (QStringListModel, QDir)
-from PyQt6 import QtWidgets
 from PyQt6 import sip
 from PyQt6.QtCore import QThread, QObject, pyqtSignal, QMutex, QTimer
 
@@ -28,6 +27,8 @@ from PyQt6.QtWidgets import (
     QListView,
     QFileDialog,
     QProgressDialog,
+    QAbstractItemView,
+    QHeaderView
 )
 
 import re
@@ -414,7 +415,21 @@ class MainWindow(UI_mainwidget.Ui_Form, QWidget):
         
         # set tablewidget
         for i, host in enumerate(self.hosts):
-            self.tw_host_info.setItem(i, 0, QTableWidgetItem(host.ip).textAlignment(QtCore.Ali))
+            # ? why tablewidgetitem not show after set alignment
+            # self.tw_host_info.setItem(i, 0, QTableWidgetItem(host.ip).
+            #                           setTextAlignment(QtCore.Qt.AlignmentFlag.AlignHCenter | QtCore.Qt.AlignmentFlag.AlignVCenter))
+            # self.tw_host_info.setItem(i, 1, QTableWidgetItem(host.username).
+            #                           setTextAlignment(QtCore.Qt.AlignmentFlag.AlignHCenter | QtCore.Qt.AlignmentFlag.AlignVCenter))
+            # self.tw_host_info.setItem(i, 2, QTableWidgetItem(host.passwd).
+            #                           setTextAlignment(QtCore.Qt.AlignmentFlag.AlignHCenter | QtCore.Qt.AlignmentFlag.AlignVCenter))
+            # if host.status == True:
+            #     self.tw_host_info.setItem(i, 3, QTableWidgetItem("✔️").
+            #                           setTextAlignment(QtCore.Qt.AlignmentFlag.AlignHCenter | QtCore.Qt.AlignmentFlag.AlignVCenter))
+            # else:
+            #     self.tw_host_info.setItem(i, 3, QTableWidgetItem("❌").
+            #                           setTextAlignment(QtCore.Qt.AlignmentFlag.AlignHCenter | QtCore.Qt.AlignmentFlag.AlignVCenter))
+            
+            self.tw_host_info.setItem(i, 0, QTableWidgetItem(host.ip))
             self.tw_host_info.setItem(i, 1, QTableWidgetItem(host.username))
             self.tw_host_info.setItem(i, 2, QTableWidgetItem(host.passwd))
             if host.status == True:
@@ -430,9 +445,16 @@ class MainWindow(UI_mainwidget.Ui_Form, QWidget):
         # 设置固定窗口大小
         self.setFixedSize(self.width(), self.height())
         
-        # 设置行数
+        # table widget设置
         self.tw_host_info.setRowCount(10)
         self.tw_host_info.setColumnCount(4)
+        
+        # 禁止编辑
+        self.tw_host_info.setEditTriggers(QAbstractItemView.EditTrigger.SelectedClicked)
+        
+        self.tw_host_info.setHorizontalHeaderLabels(['主机', '用户名', '密码', '状态'])
+        # 扩展Header长度
+        self.tw_host_info.horizontalHeader().setStretchLastSection(True)
         
         # 子窗口
         self.host_info_input = HostInfoInput()
