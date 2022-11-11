@@ -459,6 +459,10 @@ class MainWindow(UI_mainwidget.Ui_Form, QWidget):
         # 子窗口
         self.host_info_input = HostInfoInput()
         
+        # tabwidget
+        self.tab.setObjectName("IPS巡检")
+        self.tab_2.setObjectName("堡垒机授权服务器")
+        
     # 槽部分
     def init_slot(self):
         # top left side
