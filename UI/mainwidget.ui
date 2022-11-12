@@ -6,22 +6,31 @@
    <rect>
     <x>0</x>
     <y>0</y>
-    <width>1478</width>
-    <height>758</height>
+    <width>1385</width>
+    <height>768</height>
    </rect>
   </property>
   <property name="windowTitle">
    <string>Form</string>
   </property>
   <layout class="QGridLayout" name="gridLayout">
-   <item row="0" column="0">
+   <item row="1" column="0">
     <widget class="QTabWidget" name="tabWidget">
-     <property name="currentIndex">
-      <number>0</number>
+     <property name="tabShape">
+      <enum>QTabWidget::Rounded</enum>
      </property>
-     <widget class="QWidget" name="tab">
+     <property name="currentIndex">
+      <number>1</number>
+     </property>
+     <property name="iconSize">
+      <size>
+       <width>16</width>
+       <height>16</height>
+      </size>
+     </property>
+     <widget class="QWidget" name="tab_ips">
       <attribute name="title">
-       <string>Tab 1</string>
+       <string>IPS巡检</string>
       </attribute>
       <layout class="QGridLayout" name="gridLayout_2">
        <item row="0" column="0">
@@ -309,9 +318,72 @@
        </item>
       </layout>
      </widget>
-     <widget class="QWidget" name="tab_2">
+     <widget class="QWidget" name="tab_bastionhost">
       <attribute name="title">
-       <string>Tab 2</string>
+       <string>堡垒机巡检</string>
+      </attribute>
+      <widget class="QWidget" name="">
+       <property name="geometry">
+        <rect>
+         <x>80</x>
+         <y>20</y>
+         <width>1321</width>
+         <height>651</height>
+        </rect>
+       </property>
+       <layout class="QGridLayout" name="gridLayout_3">
+        <item row="0" column="0">
+         <layout class="QHBoxLayout" name="horizontalLayout_4">
+          <item>
+           <widget class="QLabel" name="label_2">
+            <property name="text">
+             <string>堡垒机ip</string>
+            </property>
+           </widget>
+          </item>
+          <item>
+           <widget class="QLineEdit" name="le_bastionhost_ip">
+            <property name="styleSheet">
+             <string notr="true">border:2px groove gray;border-radius:10px;padding:2px 4px</string>
+            </property>
+           </widget>
+          </item>
+         </layout>
+        </item>
+        <item row="2" column="0">
+         <widget class="QTableWidget" name="tw_bastionhost_output"/>
+        </item>
+        <item row="3" column="0">
+         <layout class="QHBoxLayout" name="horizontalLayout_5">
+          <item>
+           <widget class="QPushButton" name="btn_bastionhost_conn_test">
+            <property name="text">
+             <string>连接性测试</string>
+            </property>
+           </widget>
+          </item>
+          <item>
+           <widget class="QPushButton" name="btn_bastionhost_inspection">
+            <property name="text">
+             <string>巡检</string>
+            </property>
+           </widget>
+          </item>
+          <item>
+           <widget class="QPushButton" name="btn_bastionhost_report_export">
+            <property name="text">
+             <string>导出报告</string>
+            </property>
+           </widget>
+          </item>
+         </layout>
+        </item>
+       </layout>
+      </widget>
+     </widget>
+     <widget class="QWidget" name="tab_3">
+      <attribute name="title">
+       <string>Page</string>
       </attribute>
      </widget>
     </widget>

@@ -1,13 +1,18 @@
 import sys
 import time
-import ipaddress
+import socket
 
 from view import UI_mainwidget
 from view import Ui_about
 from view import Ui_host_info_input
 
 # validate ip
+import ipaddress
 from PyQt6.QtGui import QRegularExpressionValidator
+
+# excel process
+import xlrd
+
 from PyQt6 import QtCore 
 from PyQt6.QtCore import (QStringListModel, QDir)
 from PyQt6 import sip
@@ -40,6 +45,19 @@ from netmiko import BaseConnection, Netmiko
 import paramiko
 from paramiko import ssh_exception
 from paramiko.ssh_exception import AuthenticationException
+
+def is_ip(ip) -> bool:
+    num_list = ip.split(".")
+    if len(num_list) != 4:
+        return False
+    check_num = 0
+    for num in num_list:
+        if num.isdigit() and 0 <= int(num) <= 255 and str(int(num)) == num:
+            check_num = check_num + 1
+    if check_num == 4:
+        return True
+    else:
+        return False
 
 class Host():
     ip = None
@@ -151,6 +169,30 @@ class SSHConnTestWorker(QThread):
             self.host.status = False
         
         return (self.host.status, self.host)
+    
+class BastionHost(QThread):
+    signal_bastion_host_get_result_done = pyqtSignal(str)
+    
+    def __init__(self, ip, port=80):
+        self.ip = ip
+        self.port = port
+        
+    def check_conn(self):
+        # just test 80 port
+        sk = socket.socket(socket.AF_INET,socket.SOCK_STREAM)
+        sk.settimeout(1)
+        try:
+            sk.connect((self.ip, self.port))
+            sk.close()
+            return True
+        except Exception:
+            sk.close()
+            return False
+    
+    def get_license_info(self):
+        # 执行脚本获取数据
+        os.system("python3 scripts/devices_check_script/main.py")
+        self.signal_bastion_host_get_result_done.emit("done")
         
 class HostInfoInput(Ui_host_info_input.Ui_Form, QWidget):
     host_ip = None
@@ -230,7 +272,6 @@ class MainWindow(UI_mainwidget.Ui_Form, QWidget):
     ssh_cmd_exec_workers = list()
     cmd_results = str()
         
-    
     signal_mainwindow_del_host = pyqtSignal(str)
     
     def __init__(self, parent=None):
@@ -239,6 +280,8 @@ class MainWindow(UI_mainwidget.Ui_Form, QWidget):
         self.init_ui()
         self.init_slot()
         
+    # ===================================
+    # IPS界面逻辑
     def showProgregssDialog(self):
        # num = 10000
        num = 8000
@@ -255,7 +298,7 @@ class MainWindow(UI_mainwidget.Ui_Form, QWidget):
            if progress.wasCanceled():
                QMessageBox.warning(self,"提示","操作失败") 
                break
-        # 这个else怎么没对齐？
+        # don't touch this code
        else:
            progress.setValue(num)
            QMessageBox.information(self,"提示","操作成功")
@@ -433,10 +476,34 @@ class MainWindow(UI_mainwidget.Ui_Form, QWidget):
             self.tw_host_info.setItem(i, 1, QTableWidgetItem(host.username))
             self.tw_host_info.setItem(i, 2, QTableWidgetItem(host.passwd))
             if host.status == True:
-                self.tw_host_info.setItem(i, 3, QTableWidgetItem("✔️"))
+                self.tw_host_info.setItem(i, 3, QTableWidgetItem("✅"))
             else:
                 self.tw_host_info.setItem(i, 3, QTableWidgetItem("❌"))
         
+    # ================================================
+    # 堡垒机巡检界面逻辑
+    def btn_bastionhost_conn_test_clicked(self):
+        bastionhost_ip = self.le_bastionhost_ip.text()
+        if not is_ip(bastionhost_ip):
+            QMessageBox.warning(self, "错误", "请输入正确的ip")
+            self.le_bastionhost_ip.clear()
+        else:
+            bastion_host = BastionHost(bastionhost_ip)
+            if not bastion_host.check_conn():
+                QMessageBox.warning(self, "错误", "无法连接到堡垒机")
+            else:
+                QMessageBox.information(self, "完成", "成功连接到堡垒机")
+                self.btn_bastionhost_inspection.setEnabled(True)
+            
+    def btn_bastionhost_inspection_clicked(self):
+        pass
+    
+    def btn_bastion_report_export_clicked(self):
+        pass
+        
+    # ================================================
+    # 数据库巡检界面逻辑
+    
     def init_ui(self):
         # self.resize(1000, 1000)
         
@@ -444,27 +511,37 @@ class MainWindow(UI_mainwidget.Ui_Form, QWidget):
         self.btn_inspection.setEnabled(False)
         # 设置固定窗口大小
         self.setFixedSize(self.width(), self.height())
+        self.setWindowTitle("巡检工具")
         
         # table widget设置
-        self.tw_host_info.setRowCount(10)
-        self.tw_host_info.setColumnCount(4)
-        
+        # ==============================================================
+        # IPS审计页面
+        self.tw_host_info_header_labels = ['主机', '用户名', '密码', '状态']
+        self.tw_host_info.setRowCount(15)
+        self.tw_host_info.setColumnCount(len(self.tw_host_info_header_labels))
         # 禁止编辑
         self.tw_host_info.setEditTriggers(QAbstractItemView.EditTrigger.SelectedClicked)
-        
-        self.tw_host_info.setHorizontalHeaderLabels(['主机', '用户名', '密码', '状态'])
+        self.tw_host_info.setHorizontalHeaderLabels(self.tw_host_info_header_labels)
         # 扩展Header长度
         self.tw_host_info.horizontalHeader().setStretchLastSection(True)
-        
-        # 子窗口
+        # 输入主机信息子窗口
         self.host_info_input = HostInfoInput()
         
-        # tabwidget
-        self.tab.setObjectName("IPS巡检")
-        self.tab_2.setObjectName("堡垒机授权服务器")
+        # ==============================================================
+        # 堡垒机审计页面
+        self.btn_bastionhost_inspection.setDisabled(True)
+        
+        self.tw_bastionhost_headers = ['uuid', '授权类型', 'validDays', 'validFrom', 'validTo', 'dev', 'used']
+        self.tw_bastionhost_output.setColumnCount(len(self.tw_bastionhost_headers))
+        self.tw_bastionhost_output.setRowCount(15)
+        self.tw_bastionhost_output.setHorizontalHeaderLabels(self.tw_bastionhost_headers)
+        self.tw_bastionhost_output.setEditTriggers(QAbstractItemView.EditTrigger.SelectedClicked)
+        self.tw_bastionhost_output.horizontalHeader().setStretchLastSection(True)
         
     # 槽部分
     def init_slot(self):
+        # ================================================================
+        # IPS巡检
         # top left side
         self.btn_add_host.clicked.connect(lambda x: self.btn_add_host_clicked())
         self.btn_del_host.clicked.connect(lambda x: self.btn_del_host_clicked())
@@ -483,6 +560,16 @@ class MainWindow(UI_mainwidget.Ui_Form, QWidget):
         self.host_info_input.signal_host_info_input_widget_data.connect(lambda host_info: self.add_host(host_info))
         self.host_info_input.signal_host_info_input_widget_add_host.connect(lambda x: self.update_ui_host())
         self.signal_mainwindow_del_host.connect(lambda x: self.update_ui_host())
+        
+        # ================================================================
+        # 堡垒机巡检
+        self.btn_bastionhost_conn_test.clicked.connect(lambda x: self.btn_bastionhost_conn_test_clicked())
+        
+        # ================================================================
+        # 日审巡检
+        
+        # ================================================================
+        # 数审巡检
         
 if __name__ == "__main__":
     app = QApplication(sys.argv)
