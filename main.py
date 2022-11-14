@@ -12,6 +12,8 @@ from PyQt6.QtGui import QRegularExpressionValidator
 
 # excel process
 import xlrd
+import numpy as np
+import pandas as pd
 
 from PyQt6 import QtCore 
 from PyQt6.QtCore import (QStringListModel, QDir)
@@ -174,6 +176,7 @@ class BastionHost(QThread):
     signal_bastion_host_get_result_done = pyqtSignal(str)
     
     def __init__(self, ip, port=80):
+        super(BastionHost, self).__init__()
         self.ip = ip
         self.port = port
         
@@ -192,7 +195,11 @@ class BastionHost(QThread):
     def get_license_info(self):
         # 执行脚本获取数据
         os.system("python3 scripts/devices_check_script/main.py")
-        self.signal_bastion_host_get_result_done.emit("done")
+        # self.signal_bastion_host_get_result_done.emit("done")
+        
+    def run(self):
+        self.get_license_info()
+        print("堡垒机巡检完成")
         
 class HostInfoInput(Ui_host_info_input.Ui_Form, QWidget):
     host_ip = None
@@ -266,8 +273,15 @@ class AboutWidget(Ui_about.Ui_Form, QWidget):
         self.btn_quit.clicked.connect(lambda x: self.btn_quit_clicked())
         
 class MainWindow(UI_mainwidget.Ui_Form, QWidget):
-    # 主机列表
+    # IPS主机列表
     hosts = []
+    
+    # 堡垒机列表
+    bastionhosts = []
+    bastionhost = str()
+    
+    # 日审列表
+    
     ssh_conn_test_workers = list()
     ssh_cmd_exec_workers = list()
     cmd_results = str()
@@ -282,7 +296,7 @@ class MainWindow(UI_mainwidget.Ui_Form, QWidget):
         
     # ===================================
     # IPS界面逻辑
-    def showProgregssDialog(self):
+    def show_progregss_dialog(self):
        # num = 10000
        num = 8000
        progress = QProgressDialog(self)
@@ -332,7 +346,7 @@ class MainWindow(UI_mainwidget.Ui_Form, QWidget):
             self.ssh_conn_test_workers.append(SSHConnTestWorker(host))
             self.ssh_conn_test_workers[i].start()
         
-        self.showProgregssDialog()
+        self.show_progregss_dialog()
         self.btn_inspection.setEnabled(True)
         
     def btn_inspection_clicked(self):
@@ -348,7 +362,6 @@ class MainWindow(UI_mainwidget.Ui_Form, QWidget):
             
         alive_hosts = [ alive_host for alive_host in self.hosts if alive_host.conn ]
         
-                
         # 执行指令
         for i, host in enumerate(alive_hosts):
             self.hosts[i].cmd_array = cmd_array
@@ -481,23 +494,100 @@ class MainWindow(UI_mainwidget.Ui_Form, QWidget):
                 self.tw_host_info.setItem(i, 3, QTableWidgetItem("❌"))
         
     # ================================================
-    # 堡垒机巡检界面逻辑
+    # 堡垒机巡检界面逻辑，堡垒机一般只有一个，这里做list方便扩展
     def btn_bastionhost_conn_test_clicked(self):
         bastionhost_ip = self.le_bastionhost_ip.text()
         if not is_ip(bastionhost_ip):
             QMessageBox.warning(self, "错误", "请输入正确的ip")
             self.le_bastionhost_ip.clear()
         else:
-            bastion_host = BastionHost(bastionhost_ip)
-            if not bastion_host.check_conn():
-                QMessageBox.warning(self, "错误", "无法连接到堡垒机")
-            else:
-                QMessageBox.information(self, "完成", "成功连接到堡垒机")
-                self.btn_bastionhost_inspection.setEnabled(True)
+            self.bastionhosts.append(BastionHost(bastionhost_ip))
+            for bastionhost in self.bastionhosts:
+                if not bastionhost.check_conn():
+                    QMessageBox.warning(self, "错误", "无法连接到堡垒机")
+                else:
+                    QMessageBox.information(self, "完成", "成功连接到堡垒机")
+                    self.btn_bastionhost_inspection.setEnabled(True)
             
     def btn_bastionhost_inspection_clicked(self):
-        pass
+        for bastionhost in self.bastionhosts:
+            # 后台启动
+            bastionhost.start()
+            self.show_progregss_dialog()
+            
+            # 读取生成出来的excel
+            try:
+                input_table = pd.read_excel("scripts/devices_check_script/bastion_host_result.xlsx")
+                # print(1,input_table)
+                input_table_rows = input_table.shape[0]
+                input_table_colunms = input_table.shape[1]
+                # print(2,input_table_rows)
+                # print(3,input_table_colunms)
+                input_table_header = input_table.columns.values.tolist()
+                #print(input_table_header)
+
+                #读取表格，转换表格,给tablewidget设置行列表头
+                self.tw_bastionhost_output.setColumnCount(input_table_colunms)
+                self.tw_bastionhost_output.setRowCount(input_table_rows)
+                self.tw_bastionhost_output.setHorizontalHeaderLabels(input_table_header)
+
+                #给tablewidget设置行列表头
+
+                #遍历表格每个元素，同时添加到tablewidget中
+                for i in range(input_table_rows):
+                    input_table_rows_values = input_table.iloc[[i]]
+                    #print(input_table_rows_values)
+                    input_table_rows_values_array = np.array(input_table_rows_values)
+                    input_table_rows_values_list = input_table_rows_values_array.tolist()[0]
+                     #print(input_table_rows_values_list)
+                    for j in range(input_table_colunms):
+                        input_table_items_list = input_table_rows_values_list[j]
+                        #print(input_table_items_list)
+                        # print(type(input_table_items_list))
+
+                        #将遍历的元素添加到tablewidget中并显示
+                        input_table_items = str(input_table_items_list)
+                        if input_table_items == "nan":
+                            continue
+                        
+                        newItem = QTableWidgetItem(input_table_items)
+                        newItem.setTextAlignment(QtCore.Qt.AlignmentFlag.AlignHCenter | QtCore.Qt.AlignmentFlag.AlignVCenter)
+                        self.tw_bastionhost_output.setItem(i, j, newItem)
+                        
+                    self.btn_bastionhost_report_export.setEnabled(True)
+            except Exception as e:
+                QMessageBox.warning("无法获取到信息")
+                
+    def btn_bastionhost_report_export_clicked(self):
+        filename = QFileDialog.getSaveFileName(self, '保存文件', './', 'xls(*.xls)')
+        data = ""
+        with open("scripts/devices_check_script/bastion_host_result.xlsx",'rb') as f:
+            data = f.read()
+            
+        with open(filename[0],'wb') as f:
+            f.write(data)
     
+    def show_progregss_dialog(self):
+       # num = 10000
+       num = 8000
+       progress = QProgressDialog(self)
+       progress.setWindowTitle("请稍等")  
+       progress.setLabelText("正在巡检")
+       # progress.setCancelButtonText("取消")
+       progress.setMinimumDuration(1)
+       progress.setWindowModality(QtCore.Qt.WindowModality.WindowModal)
+       progress.setRange(0,num) 
+       
+       for i in range(num):
+           progress.setValue(i) 
+           if progress.wasCanceled():
+               QMessageBox.warning(self,"提示","操作失败") 
+               break
+        # don't touch this code
+       else:
+           progress.setValue(num)
+           QMessageBox.information(self,"提示","操作成功")
+           
     def btn_bastion_report_export_clicked(self):
         pass
         
@@ -530,6 +620,7 @@ class MainWindow(UI_mainwidget.Ui_Form, QWidget):
         # ==============================================================
         # 堡垒机审计页面
         self.btn_bastionhost_inspection.setDisabled(True)
+        self.btn_bastionhost_report_export.setDisabled(True)
         
         self.tw_bastionhost_headers = ['uuid', '授权类型', 'validDays', 'validFrom', 'validTo', 'dev', 'used']
         self.tw_bastionhost_output.setColumnCount(len(self.tw_bastionhost_headers))
@@ -564,6 +655,8 @@ class MainWindow(UI_mainwidget.Ui_Form, QWidget):
         # ================================================================
         # 堡垒机巡检
         self.btn_bastionhost_conn_test.clicked.connect(lambda x: self.btn_bastionhost_conn_test_clicked())
+        self.btn_bastionhost_inspection.clicked.connect(lambda x: self.btn_bastionhost_inspection_clicked())
+        self.btn_bastionhost_report_export.clicked.connect(lambda x: self.btn_bastionhost_report_export_clicked())
         
         # ================================================================
         # 日审巡检
