@@ -39,7 +39,7 @@
     <string>cancel</string>
    </property>
   </widget>
-  <widget class="QLabel" name="label">
+  <widget class="QLabel" name="label_msg">
    <property name="geometry">
     <rect>
      <x>200</x>

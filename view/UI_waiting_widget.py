@@ -19,9 +19,9 @@ class Ui_Form(object):
         self.btn_cancel = QtWidgets.QPushButton(Form)
         self.btn_cancel.setGeometry(QtCore.QRect(310, 200, 100, 32))
         self.btn_cancel.setObjectName("btn_cancel")
-        self.label = QtWidgets.QLabel(Form)
-        self.label.setGeometry(QtCore.QRect(200, 90, 161, 41))
-        self.label.setObjectName("label")
+        self.label_msg = QtWidgets.QLabel(Form)
+        self.label_msg.setGeometry(QtCore.QRect(200, 90, 161, 41))
+        self.label_msg.setObjectName("label_msg")
 
         self.retranslateUi(Form)
         QtCore.QMetaObject.connectSlotsByName(Form)
@@ -31,4 +31,4 @@ class Ui_Form(object):
         Form.setWindowTitle(_translate("Form", "Form"))
         self.btn_ok.setText(_translate("Form", "ok"))
         self.btn_cancel.setText(_translate("Form", "cancel"))
-        self.label.setText(_translate("Form", "<html><head/><body><p><span style=\" font-size:24pt;\">是否开始巡检</span></p></body></html>"))
+        self.label_msg.setText(_translate("Form", "<html><head/><body><p><span style=\" font-size:24pt;\">正在开始巡检</span></p></body></html>"))

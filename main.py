@@ -34,7 +34,8 @@ from PyQt6.QtWidgets import (
     QFileDialog,
     QProgressDialog,
     QAbstractItemView,
-    QHeaderView
+    QHeaderView,
+    QLabel
 )
 
 from paramiko import ssh_exception
@@ -190,7 +191,9 @@ class BastionHost(QThread):
     
     def get_license_info(self):
         # 执行脚本获取数据
-        os.system("python3 scripts/devices_check_script/main.py")
+        # os.system("python3 scripts/devices_check_script/main.py")
+        os.system("sleep 3")
+        print("Start to send signal_bastionhost_get_task_status")
         self.signal_bastionhost_get_task_status.emit("done")
         
     def run(self):
@@ -302,8 +305,7 @@ class MainWindow(UI_mainwidget.Ui_Form, QWidget):
     # IPS主机列表
     hosts = []
     
-    # 堡垒机列表
-    bastionhosts = []
+    # 堡垒机列
     bastionhost = str()
     
     # 日审列表
@@ -366,7 +368,7 @@ class MainWindow(UI_mainwidget.Ui_Form, QWidget):
         self.qtimer_ssh_conn_test_timeout.start(2000)
         self.qtimer_ssh_conn_test_timeout.timeout.connect(self.update_ui_host)
         
-        # 测试所有主机
+        # 开启线程测试所有主机
         for i, host in enumerate(self.hosts):
             # init ssh woker
             self.ssh_conn_test_workers.append(SSHConnTestWorker(host))
@@ -527,66 +529,69 @@ class MainWindow(UI_mainwidget.Ui_Form, QWidget):
             QMessageBox.warning(self, "错误", "请输入正确的ip")
             self.le_bastionhost_ip.clear()
         else:
-            self.bastionhosts.append(BastionHost(bastionhost_ip))
-            for bastionhost in self.bastionhosts:
-                if not bastionhost.check_conn():
-                    QMessageBox.warning(self, "错误", "无法连接到堡垒机")
-                else:
-                    QMessageBox.information(self, "完成", "成功连接到堡垒机")
-                    self.btn_bastionhost_inspection.setEnabled(True)
-                    
-    # ???
-    def btn_bastionhost_inspection_clicked(self):
-        for i, bastionhost in enumerate(self.bastionhosts):
-            # 后台启动
-            bastionhost.start()
-            # self.show_progregss_dialog()
-            ww = WaitingWidget(self)
-            ww.show()
-            
-            # 读取生成出来的excel
-            try:
-                input_table = pd.read_excel("scripts/devices_check_script/bastion_host_result.xlsx")
-                # print(1,input_table)
-                input_table_rows = input_table.shape[0]
-                input_table_colunms = input_table.shape[1]
-                # print(2,input_table_rows)
-                # print(3,input_table_colunms)
-                input_table_header = input_table.columns.values.tolist()
-                #print(input_table_header)
-
-                #读取表格，转换表格,给tablewidget设置行列表头
-                self.tw_bastionhost_output.setColumnCount(input_table_colunms)
-                self.tw_bastionhost_output.setRowCount(input_table_rows)
-                self.tw_bastionhost_output.setHorizontalHeaderLabels(input_table_header)
-
-                #给tablewidget设置行列表头
-
-                #遍历表格每个元素，同时添加到tablewidget中
-                for i in range(input_table_rows):
-                    input_table_rows_values = input_table.iloc[[i]]
-                    #print(input_table_rows_values)
-                    input_table_rows_values_array = np.array(input_table_rows_values)
-                    input_table_rows_values_list = input_table_rows_values_array.tolist()[0]
-                     #print(input_table_rows_values_list)
-                    for j in range(input_table_colunms):
-                        input_table_items_list = input_table_rows_values_list[j]
-                        #print(input_table_items_list)
-                        # print(type(input_table_items_list))
-
-                        #将遍历的元素添加到tablewidget中并显示
-                        input_table_items = str(input_table_items_list)
-                        if input_table_items == "nan":
-                            continue
-                        
-                        newItem = QTableWidgetItem(input_table_items)
-                        newItem.setTextAlignment(QtCore.Qt.AlignmentFlag.AlignHCenter | QtCore.Qt.AlignmentFlag.AlignVCenter)
-                        self.tw_bastionhost_output.setItem(i, j, newItem)
-                        
-                    self.btn_bastionhost_report_export.setEnabled(True)
-            except Exception as e:
-                QMessageBox.warning("无法获取到信息")
+            self.bastionhost =  BastionHost(bastionhost_ip)
+            if not self.bastionhost.check_conn():
+                QMessageBox.warning(self, "错误", "无法连接到堡垒机")
+            else:
+                QMessageBox.information(self, "完成", "成功连接到堡垒机")
+                self.btn_bastionhost_inspection.setEnabled(True)
                 
+    def update_ui_wait_done(self):
+        self.wait_widget.waiting_spinner.close()
+        self.wait_widget.label_msg.setText("巡检完成")
+        self.wait_widget.label_msg.setStyle("")
+        self.wait_widget.btn_ok.setEnabled(True)
+        self.wait_widget.btn_cancel.setDisabled(True)
+                    
+    def btn_bastionhost_inspection_clicked(self):
+        self.bastionhost.signal_bastionhost_get_task_status.connect(lambda status: self.update_ui_wait_done())
+        
+        # 后台启动
+        self.bastionhost.start()
+        self.wait_widget.show()
+            
+        # 读取生成出来的excel
+        try:
+            input_table = pd.read_excel("scripts/devices_check_script/bastion_host_result.xlsx")
+            # print(1,input_table)
+            input_table_rows = input_table.shape[0]
+            input_table_colunms = input_table.shape[1]
+            # print(2,input_table_rows)
+            # print(3,input_table_colunms)
+            input_table_header = input_table.columns.values.tolist()
+            #print(input_table_header)
+
+            #读取表格，转换表格,给tablewidget设置行列表头
+            self.tw_bastionhost_output.setColumnCount(input_table_colunms)
+            self.tw_bastionhost_output.setRowCount(input_table_rows)
+            self.tw_bastionhost_output.setHorizontalHeaderLabels(input_table_header)
+
+            #给tablewidget设置行列表头
+            #遍历表格每个元素，同时添加到tablewidget中
+            for i in range(input_table_rows):
+                input_table_rows_values = input_table.iloc[[i]]
+                #print(input_table_rows_values)
+                input_table_rows_values_array = np.array(input_table_rows_values)
+                input_table_rows_values_list = input_table_rows_values_array.tolist()[0]
+                 #print(input_table_rows_values_list)
+                for j in range(input_table_colunms):
+                    input_table_items_list = input_table_rows_values_list[j]
+                    #print(input_table_items_list)
+                    # print(type(input_table_items_list))
+
+                    #将遍历的元素添加到tablewidget中并显示
+                    input_table_items = str(input_table_items_list)
+                    if input_table_items == "nan":
+                        continue
+                    
+                    newItem = QTableWidgetItem(input_table_items)
+                    newItem.setTextAlignment(QtCore.Qt.AlignmentFlag.AlignHCenter | QtCore.Qt.AlignmentFlag.AlignVCenter)
+                    self.tw_bastionhost_output.setItem(i, j, newItem)
+                    
+                self.btn_bastionhost_report_export.setEnabled(True)
+        except Exception as e:
+            QMessageBox.warning("无法获取到信息")
+            
     def btn_bastionhost_report_export_clicked(self):
         filename = QFileDialog.getSaveFileName(self, '保存文件', './', 'xls(*.xls)')
         data = ""
@@ -628,6 +633,9 @@ class MainWindow(UI_mainwidget.Ui_Form, QWidget):
     def init_ui(self):
         # self.resize(1000, 1000)
         
+        # 等待界面
+        self.wait_widget = WaitingWidget(self)
+        
         # 巡检按钮需要先通过连接性测试才能激活
         self.btn_inspection.setEnabled(False)
         # 设置固定窗口大小
@@ -662,8 +670,6 @@ class MainWindow(UI_mainwidget.Ui_Form, QWidget):
         
     # 槽部分
     def init_slot(self):
-        # waitspinner
-        
         # ================================================================
         # IPS巡检
         # top left side
