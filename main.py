@@ -1,25 +1,24 @@
+import os
 import sys
 import time
 import socket
 
-from view import UI_mainwidget
+# self made
 from view import Ui_about
+from view import UI_mainwidget
+from view import UI_waiting_widget
 from view import Ui_host_info_input
-
-# validate ip
-import ipaddress
-from PyQt6.QtGui import QRegularExpressionValidator
+from waitingspinnerwidget import QtWaitingSpinner
 
 # excel process
 import xlrd
 import numpy as np
 import pandas as pd
 
+from PyQt6 import sip
 from PyQt6 import QtCore 
 from PyQt6.QtCore import (QStringListModel, QDir)
-from PyQt6 import sip
 from PyQt6.QtCore import QThread, QObject, pyqtSignal, QMutex, QTimer
-
 from PyQt6.QtWidgets import (
     QVBoxLayout,
     QMainWindow,
@@ -38,14 +37,8 @@ from PyQt6.QtWidgets import (
     QHeaderView
 )
 
-import re
-import os
-import time
-import socket
-
-from netmiko import BaseConnection, Netmiko
-import paramiko
 from paramiko import ssh_exception
+from netmiko import BaseConnection, Netmiko
 from paramiko.ssh_exception import AuthenticationException
 
 def is_ip(ip) -> bool:
@@ -173,7 +166,7 @@ class SSHConnTestWorker(QThread):
         return (self.host.status, self.host)
     
 class BastionHost(QThread):
-    signal_bastion_host_get_result_done = pyqtSignal(str)
+    signal_bastionhost_get_task_status = pyqtSignal(str)
     
     def __init__(self, ip, port=80):
         super(BastionHost, self).__init__()
@@ -192,10 +185,13 @@ class BastionHost(QThread):
             sk.close()
             return False
     
+    def kill_task(self):
+        pass
+    
     def get_license_info(self):
         # 执行脚本获取数据
         os.system("python3 scripts/devices_check_script/main.py")
-        # self.signal_bastion_host_get_result_done.emit("done")
+        self.signal_bastionhost_get_task_status.emit("done")
         
     def run(self):
         self.get_license_info()
@@ -249,6 +245,36 @@ class HostInfoInput(Ui_host_info_input.Ui_Form, QWidget):
     def btn_calcel_clicked(self):
         self.close()
         
+class WaitingWidget(UI_waiting_widget.Ui_Form, QWidget):
+    def __init__(self, task):
+        super(WaitingWidget, self).__init__()
+        
+        # 获取传过来的参数
+        # task 必须提供关闭task的方法，kill_task()
+        self.task = task
+        self.waiting_spinner = QtWaitingSpinner(self)
+        
+        self.setupUi(self)
+        self.init_ui()
+        self.init_slot()
+        
+    def kill_task(self):
+        result = QMessageBox.question(self, "正在运行", "有任务正在运行，确认要关闭吗？")
+        if result == QMessageBox.y:
+            self.task.kill_task()
+        else:
+            pass
+        
+    def init_ui(self):
+        self.waiting_spinner.start()
+        self.btn_ok.setDisabled(True)
+        
+    def init_slot(self):
+        # 关闭此窗口
+        self.btn_ok.clicked.connect(lambda x: self.close())
+        # 关闭task, 该任务必须提供关闭的方法
+        self.btn_cancel.clicked.connect(lambda x: self.task_kill_task())
+
 class AboutWidget(Ui_about.Ui_Form, QWidget):
     def __init__(self):
         super(AboutWidget, self).__init__()
@@ -508,12 +534,15 @@ class MainWindow(UI_mainwidget.Ui_Form, QWidget):
                 else:
                     QMessageBox.information(self, "完成", "成功连接到堡垒机")
                     self.btn_bastionhost_inspection.setEnabled(True)
-            
+                    
+    # ???
     def btn_bastionhost_inspection_clicked(self):
-        for bastionhost in self.bastionhosts:
+        for i, bastionhost in enumerate(self.bastionhosts):
             # 后台启动
             bastionhost.start()
-            self.show_progregss_dialog()
+            # self.show_progregss_dialog()
+            ww = WaitingWidget(self)
+            ww.show()
             
             # 读取生成出来的excel
             try:
@@ -564,8 +593,10 @@ class MainWindow(UI_mainwidget.Ui_Form, QWidget):
         with open("scripts/devices_check_script/bastion_host_result.xlsx",'rb') as f:
             data = f.read()
             
-        with open(filename[0],'wb') as f:
-            f.write(data)
+        # make sure file name is ok
+        if len(filename[0]) > 1:
+            with open(filename[0],'wb') as f:
+                f.write(data)
     
     def show_progregss_dialog(self):
        # num = 10000
@@ -631,6 +662,8 @@ class MainWindow(UI_mainwidget.Ui_Form, QWidget):
         
     # 槽部分
     def init_slot(self):
+        # waitspinner
+        
         # ================================================================
         # IPS巡检
         # top left side
@@ -654,6 +687,7 @@ class MainWindow(UI_mainwidget.Ui_Form, QWidget):
         
         # ================================================================
         # 堡垒机巡检
+        # self.btn_bastionhost_conn_test.clicked.connect(lambda x: self.btn_bastionhost_conn_test_clicked())
         self.btn_bastionhost_conn_test.clicked.connect(lambda x: self.btn_bastionhost_conn_test_clicked())
         self.btn_bastionhost_inspection.clicked.connect(lambda x: self.btn_bastionhost_inspection_clicked())
         self.btn_bastionhost_report_export.clicked.connect(lambda x: self.btn_bastionhost_report_export_clicked())
