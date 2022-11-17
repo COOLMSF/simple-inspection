@@ -124,7 +124,7 @@ class SSHCmdExecWoker(QThread):
         return result_str
 
 class SSHConnTestWorker(QThread):
-    signal_ssh_connected = pyqtSignal(dict)
+    signal_ssh_connected = pyqtSignal(str)
     
     def __init__(self, host):
         super(SSHConnTestWorker, self).__init__()
@@ -142,6 +142,7 @@ class SSHConnTestWorker(QThread):
         else:
             self.host.status = False
         qmutex.unlock()
+        self.signal_ssh_connected.emit("done")
         
     # 返回连接状态(bool)，连接句柄(conn)
     def try_connect(self):
@@ -360,12 +361,18 @@ class MainWindow(UI_mainwidget.Ui_Form, QWidget):
                 #接受读取的内容，并显示到多行文本框中
                 data=f.read()
                 self.te_cmd_input.setText(data)
+                
+    def update_ui_task_done(self):
+        # 关闭等待页面
+        self.wait_widget.waiting_spinner.close()
+        self.wait_widget.label_msg.setText("操作完成")
         
     # buttom side UI logic
     def btn_conn_test_clicked(self):
         # 开启计时器，2秒后超时
         self.qtimer_ssh_conn_test_timeout = QTimer(self)
         self.qtimer_ssh_conn_test_timeout.start(2000)
+        self.qtimer_ssh_conn_test_timeout.timeout.connect(self.update_ui_wait_done)
         self.qtimer_ssh_conn_test_timeout.timeout.connect(self.update_ui_host)
         
         # 开启线程测试所有主机
@@ -374,7 +381,8 @@ class MainWindow(UI_mainwidget.Ui_Form, QWidget):
             self.ssh_conn_test_workers.append(SSHConnTestWorker(host))
             self.ssh_conn_test_workers[i].start()
         
-        self.show_progregss_dialog()
+        # 开启等待页面
+        self.wait_widget.show()
         self.btn_inspection.setEnabled(True)
         
     def btn_inspection_clicked(self):
@@ -539,7 +547,7 @@ class MainWindow(UI_mainwidget.Ui_Form, QWidget):
     def update_ui_wait_done(self):
         self.wait_widget.waiting_spinner.close()
         self.wait_widget.label_msg.setText("巡检完成")
-        self.wait_widget.label_msg.setStyle("")
+        # self.wait_widget.label_msg.setStyle("")
         self.wait_widget.btn_ok.setEnabled(True)
         self.wait_widget.btn_cancel.setDisabled(True)
                     
