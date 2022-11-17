@@ -508,18 +508,13 @@ class MainWindow(UI_mainwidget.Ui_Form, QWidget):
         # set tablewidget
         for i, host in enumerate(self.hosts):
             # ? why tablewidgetitem not show after set alignment
-            # self.tw_host_info.setItem(i, 0, QTableWidgetItem(host.ip).
-            #                           setTextAlignment(QtCore.Qt.AlignmentFlag.AlignHCenter | QtCore.Qt.AlignmentFlag.AlignVCenter))
-            # self.tw_host_info.setItem(i, 1, QTableWidgetItem(host.username).
-            #                           setTextAlignment(QtCore.Qt.AlignmentFlag.AlignHCenter | QtCore.Qt.AlignmentFlag.AlignVCenter))
-            # self.tw_host_info.setItem(i, 2, QTableWidgetItem(host.passwd).
-            #                           setTextAlignment(QtCore.Qt.AlignmentFlag.AlignHCenter | QtCore.Qt.AlignmentFlag.AlignVCenter))
+            # self.tw_host_info.setItem(i, 0, QTableWidgetItem(host.ip).setTextAlignment(QtCore.Qt.AlignmentFlag.AlignHCenter))
+            # self.tw_host_info.setItem(i, 1, QTableWidgetItem(host.username).setTextAlignment(QtCore.Qt.AlignmentFlag.AlignHCenter))
+            # self.tw_host_info.setItem(i, 2, QTableWidgetItem(host.passwd).setTextAlignment(QtCore.Qt.AlignmentFlag.AlignHCenter))
             # if host.status == True:
-            #     self.tw_host_info.setItem(i, 3, QTableWidgetItem("✔️").
-            #                           setTextAlignment(QtCore.Qt.AlignmentFlag.AlignHCenter | QtCore.Qt.AlignmentFlag.AlignVCenter))
+            #     self.tw_host_info.setItem(i, 3, QTableWidgetItem("✔️").setTextAlignment(QtCore.Qt.AlignmentFlag.AlignHCenter))
             # else:
-            #     self.tw_host_info.setItem(i, 3, QTableWidgetItem("❌").
-            #                           setTextAlignment(QtCore.Qt.AlignmentFlag.AlignHCenter | QtCore.Qt.AlignmentFlag.AlignVCenter))
+            #     self.tw_host_info.setItem(i, 3, QTableWidgetItem("❌").setTextAlignment(QtCore.Qt.AlignmentFlag.AlignHCenter))
             
             self.tw_host_info.setItem(i, 0, QTableWidgetItem(host.ip))
             self.tw_host_info.setItem(i, 1, QTableWidgetItem(host.username))
@@ -528,6 +523,11 @@ class MainWindow(UI_mainwidget.Ui_Form, QWidget):
                 self.tw_host_info.setItem(i, 3, QTableWidgetItem("✅"))
             else:
                 self.tw_host_info.setItem(i, 3, QTableWidgetItem("❌"))
+        
+        # 居中    
+        for i in range(self.tw_host_info.rowCount()):
+            for j in range(self.tw_host_info.columnCount()):
+                self.tw_host_info.item(i, j).setTextAlignment(QtCore.Qt.AlignmentFlag.AlignCenter)
         
     # ================================================
     # 堡垒机巡检界面逻辑，堡垒机一般只有一个，这里做list方便扩展
@@ -656,6 +656,7 @@ class MainWindow(UI_mainwidget.Ui_Form, QWidget):
         self.tw_host_info_header_labels = ['主机', '用户名', '密码', '状态']
         self.tw_host_info.setRowCount(15)
         self.tw_host_info.setColumnCount(len(self.tw_host_info_header_labels))
+        
         # 禁止编辑
         self.tw_host_info.setEditTriggers(QAbstractItemView.EditTrigger.SelectedClicked)
         self.tw_host_info.setHorizontalHeaderLabels(self.tw_host_info_header_labels)
