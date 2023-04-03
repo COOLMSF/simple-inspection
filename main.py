@@ -9,6 +9,7 @@ from view import UI_mainwidget
 from view import UI_waiting_widget
 from view import Ui_host_info_input
 from waitingspinnerwidget import QtWaitingSpinner
+from qt_material import apply_stylesheet
 
 # excel process
 import xlrd
@@ -287,8 +288,7 @@ class AboutWidget(Ui_about.Ui_Form, QWidget):
         self.init_slot()
         
     def btn_ok_clicked(self):
-        dlg = QDialog(self)
-        dlg.exec()
+        self.close()
     
     def btn_quit_clicked(self):
         self.close()
@@ -553,11 +553,13 @@ class MainWindow(UI_mainwidget.Ui_Form, QWidget):
                     
     def btn_bastionhost_inspection_clicked(self):
         self.bastionhost.signal_bastionhost_get_task_status.connect(lambda status: self.update_ui_wait_done())
+        self.bastionhost.signal_bastionhost_get_task_status.connect(lambda status: self.update_ui_bastionhost())
         
         # 后台启动
         self.bastionhost.start()
         self.wait_widget.show()
             
+    def update_ui_bastionhost(self):
         # 读取生成出来的excel
         try:
             input_table = pd.read_excel("scripts/devices_check_script/bastion_host_result.xlsx")
@@ -597,8 +599,9 @@ class MainWindow(UI_mainwidget.Ui_Form, QWidget):
                     self.tw_bastionhost_output.setItem(i, j, newItem)
                     
                 self.btn_bastionhost_report_export.setEnabled(True)
+                
         except Exception as e:
-            QMessageBox.warning("无法获取到信息")
+            QMessageBox.warning(self, "错误", "无法获取到信息")
             
     def btn_bastionhost_report_export_clicked(self):
         filename = QFileDialog.getSaveFileName(self, '保存文件', './', 'xls(*.xls)')
@@ -717,5 +720,6 @@ if __name__ == "__main__":
     app = QApplication(sys.argv)
     w = MainWindow()
     w.show()
+    apply_stylesheet(app, theme="light_blue_500.xml")
     sys.exit(app.exec())
     
